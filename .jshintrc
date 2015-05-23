@@ -1,0 +1,20 @@
+{
+  "camelcase": true,
+  "eqeqeq": true,
+  "immed": true,
+  "indent": 2,
+  "latedef": "nofunc",
+  "newcap": true,
+  "freeze":  true,
+  "noarg": true,
+  "undef": true,
+  "unused": true,
+  "trailing": true,
+  "smarttabs": true,
+
+  "laxbreak": true,
+
+  "node": true,
+  "browser": true,
+  "browserify": true
+}

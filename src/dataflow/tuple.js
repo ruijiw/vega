@@ -16,18 +16,18 @@ function derive(datum, prev) {
   return ingest(Object.create(datum), prev);
 }
 
-function setPrev(t, k) {
-  if (t._prev === undefined) return;
-  t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
-  t._prev[k] = t[k];
-}
-
 // WARNING: operators should only call this once per timestamp!
 function set(t, k, v) {
   var prev = t[k];
   if (prev === v) return;
   setPrev(t, k);
   t[k] = v;
+}
+
+function setPrev(t, k) {
+  if (t._prev === undefined) return;
+  t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
+  t._prev[k] = t[k];
 }
 
 function hasPrev(t) {
