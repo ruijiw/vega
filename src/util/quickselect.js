@@ -8,12 +8,12 @@ module.exports = function quickselect(k, x, c) {
   }
 
   // x may be null, in which case assemble an array from c (counts)
-  if(x === null) {
+  if (x === null) {
     x = [];
     dl.keys(c).forEach(function(k) {
       var i = 0, len = c[k];
       k = +k || k;
-      for(; i<len; ++i) x.push(k);
+      for (; i<len; ++i) x.push(k);
     });
   }
   

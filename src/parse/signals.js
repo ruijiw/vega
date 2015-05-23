@@ -6,12 +6,12 @@ function parseSignals(model, spec) {
   (spec || []).forEach(function(s) {
     var signal = model.signal(s.name, s.init);
 
-    if(s.init && s.init.expr) {
+    if (s.init && s.init.expr) {
       s.init.expr = expr(s.init.expr);
       signal.value(exprVal(model, s.init));
     }
 
-    if(s.expr) {
+    if (s.expr) {
       s.expr = expr(s.expr);
       signal.evaluate = function(input) {
         signal.value(exprVal(model, s));
@@ -37,12 +37,12 @@ parseSignals.scale = function scale(model, spec, value) {
       name  = def.name || def.signal || def,
       scope = def.scope ? model.signalRef(def.scope.signal) : null;
 
-  if(!scope || !scope.scale) {
+  if (!scope || !scope.scale) {
     scope = (scope && scope.mark) ? scope.mark.group : model.scene().items[0];
   }
 
   var scale = scope.scale(name);
-  if(!scale) return value;
+  if (!scale) return value;
   return def.invert ? scale.invert(value) : scale(value);
 }
 

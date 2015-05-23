@@ -50,13 +50,13 @@ function streaming(src) {
       cs  = this._changeset,
       api = {};
 
-  if(dl.keys(cs.signals).length > 0) {
+  if (dl.keys(cs.signals).length > 0) {
     throw "New signal values are not reflected in the visualization." +
       " Please call view.update() before updating data values."
   }
 
   // If we have it stashed, don't create a new closure. 
-  if(this._api[src]) return this._api[src];
+  if (this._api[src]) return this._api[src];
 
   api.insert = function(vals) {
     ds.insert(dl.duplicate(vals));  // Don't pollute the environment
@@ -84,9 +84,9 @@ function streaming(src) {
 
 prototype.data = function(data) {
   var v = this;
-  if(!arguments.length) return v._model.dataValues();
-  else if(dl.isString(data)) return streaming.call(v, data);
-  else if(dl.isObject(data)) {
+  if (!arguments.length) return v._model.dataValues();
+  else if (dl.isString(data)) return streaming.call(v, data);
+  else if (dl.isObject(data)) {
     dl.keys(data).forEach(function(k) {
       var api = streaming.call(v, k);
       data[k](api);
@@ -101,15 +101,15 @@ prototype.signal = function(name, value) {
       streamer = this._streamer,
       setter = name; 
 
-  if(!arguments.length) return m.signalValues();
-  else if(arguments.length == 1 && dl.isString(name)) return m.signalValues(name);
+  if (!arguments.length) return m.signalValues();
+  else if (arguments.length == 1 && dl.isString(name)) return m.signalValues(name);
 
-  if(dl.keys(cs.data).length > 0) {
+  if (dl.keys(cs.data).length > 0) {
     throw "New data values are not reflected in the visualization." +
       " Please call view.update() before updating signal values."
   }
 
-  if(arguments.length == 2) {
+  if (arguments.length == 2) {
     setter = {};
     setter[name] = value;
   }
@@ -166,7 +166,7 @@ prototype.padding = function(pad) {
     }
     if (this._el) {
       this._renderer.resize(this._width, this._height, pad);
-      if(this._handler) this._handler.padding(pad);
+      if (this._handler) this._handler.padding(pad);
     }
   }
   return this;
@@ -232,7 +232,7 @@ prototype.initialize = function(el) {
 
   if (!arguments.length || el === null) {
     el = this._el ? this._el.parentNode : null;
-    if(!el) return this;  // This View cannot init w/o an
+    if (!el) return this;  // This View cannot init w/o an
   }
   
   // clear pre-existing container
@@ -282,7 +282,7 @@ function build() {
     debug(input, ["rendering"]);
 
     var s = v._model.scene();
-    if(input.trans) {
+    if (input.trans) {
       input.trans.start(function(items) { v._renderer.render(s, items); });
     } else {
       v._renderer.render(s);
@@ -290,9 +290,9 @@ function build() {
 
     // For all updated datasources, finalize their changesets.
     var d, ds;
-    for(d in input.data) {
+    for (d in input.data) {
       ds = v._model.data(d);
-      if(!ds.revises()) continue;
+      if (!ds.revises()) continue;
       changeset.finalize(ds.last());
     }
 
@@ -310,9 +310,9 @@ prototype.update = function(opt) {
         : null;
 
   var cs = v._changeset;
-  if(trans) cs.trans = trans;
-  if(opt.props !== undefined) {
-    if(dl.keys(cs.data).length > 0) {
+  if (trans) cs.trans = trans;
+  if (opt.props !== undefined) {
+    if (dl.keys(cs.data).length > 0) {
       throw "New data values are not reflected in the visualization." +
         " Please call view.update() before updating a specified property set."
     }
@@ -326,10 +326,10 @@ prototype.update = function(opt) {
   // If specific items are specified, short-circuit dataflow graph.
   // Else-If there are streaming updates, perform a targeted propagation.
   // Otherwise, reevaluate the entire model (datasources + scene).
-  if(opt.items) { 
+  if (opt.items) { 
     Encoder.update(this._model, opt.trans, opt.props, opt.items);
     v._renderNode.evaluate(cs);
-  } else if(v._streamer.listeners().length) {
+  } else if (v._streamer.listeners().length) {
     v._model.propagate(cs, v._streamer);
     v._streamer.disconnect();
   } else {
@@ -379,8 +379,8 @@ View.factory = function(model) {
       .background(defs.background)
       .padding(defs.padding);
 
-    if(opt.el || (!opt.el && v instanceof HeadlessView)) v.initialize(opt.el);
-    if(opt.data) v.data(opt.data);
+    if (opt.el || (!opt.el && v instanceof HeadlessView)) v.initialize(opt.el);
+    if (opt.data) v.data(opt.data);
   
     return v;
   };    

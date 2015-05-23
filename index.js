@@ -1,4 +1,5 @@
 module.exports = {
+  version: '__VERSION__',
   core: {
     View: require('./src/core/View')
   },

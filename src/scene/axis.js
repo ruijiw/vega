@@ -84,7 +84,7 @@ function axs(model) {
   }
 
   axis.def = function() {
-    if(!axisDef.type) axis_def(scale);
+    if (!axisDef.type) axis_def(scale);
 
     var fmt = buildTickFormat();
     var ticks = buildTicks(fmt);

@@ -10,6 +10,7 @@ var gulp = require('gulp'),
     watchify = require('watchify'),
     gutil = require('gulp-util'),
     mocha = require('gulp-spawn-mocha'),
+    jshint = require('gulp-jshint'),
     argv = require('yargs').argv;
 
 function browser() {
@@ -56,6 +57,12 @@ gulp.task('test', function() {
   return gulp.src(['test/**/*.js'], { read: false })
     .pipe(mocha({ grep: argv.g, timeout: 5000 }))
     .on('error', gutil.log);
+});
+
+gulp.task('jshint', function() {  
+  return gulp.src('src/**/*.js')
+    .pipe(jshint())
+    .pipe(jshint.reporter('jshint-summary'))
 });
 
 gulp.task('default', ['test', 'build']);

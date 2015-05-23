@@ -36,11 +36,11 @@ function add(output, left, wdata, diag, x) {
       prev  = x._prev !== undefined ? null : undefined, 
       t, y, id;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     y = data[i];
     id = left ? x._id+"_"+y._id : y._id+"_"+x._id;
-    if(this._ids[id]) continue;
-    if(x._id == y._id && !diag) continue;
+    if (this._ids[id]) continue;
+    if (x._id == y._id && !diag) continue;
 
     t = tuple.ingest({}, prev);
     t[this._output.left]  = left ? x : y;
@@ -56,7 +56,7 @@ function mod(output, left, x) {
   var cross = this,
       c = this._cache[x._id];
 
-  if(this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
+  if (this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
     c.c = c.c.filter(function(y) {
       var t = y[cross._output[left ? "right" : "left"]];
       return cross._cache[t._id] !== null;
@@ -74,7 +74,7 @@ function rem(output, x) {
 }
 
 function upFields(input, output) {
-  if(input.add.length || input.rem.length) {
+  if (input.add.length || input.rem.length) {
     output.fields[this._output.left]  = 1; 
     output.fields[this._output.right] = 1;
   }
@@ -98,7 +98,7 @@ proto.transform = function(input) {
   input.rem.forEach(r);
   input.add.forEach(add.bind(this, output, true, wdata, diag));
 
-  if(!selfCross && woutput.stamp > this._lastWith) {
+  if (!selfCross && woutput.stamp > this._lastWith) {
     woutput.rem.forEach(r);
     woutput.add.forEach(add.bind(this, output, false, data, diag));
     woutput.mod.forEach(mod.bind(this, output, false));

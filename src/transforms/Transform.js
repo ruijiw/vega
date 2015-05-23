@@ -3,7 +3,7 @@ var Node = require('../dataflow/Node'),
     C = require('../util/constants');
 
 function Transform(graph) {
-  if(graph) Node.prototype.init.call(this, graph);
+  if (graph) Node.prototype.init.call(this, graph);
   return this;
 }
 
@@ -23,8 +23,8 @@ proto.clone = function() {
   var n = Node.prototype.clone.call(this);
   n.transform = this.transform;
   n._parameters = this._parameters;
-  for(var k in this) { 
-    if(n[k]) continue;
+  for (var k in this) { 
+    if (n[k]) continue;
     n[k] = this[k]; 
   }
   return n;

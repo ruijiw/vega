@@ -20,11 +20,11 @@ proto.evaluate = function(input) {
 
   bounds.mark(this._mark, null, !hasLegends);
 
-  if(hasLegends) {
-    for(i=0, ilen=this._mark.items.length; i<ilen; ++i) {
+  if (hasLegends) {
+    for (i=0, ilen=this._mark.items.length; i<ilen; ++i) {
       group = this._mark.items[i];
       group._legendPositions = null;
-      for(j=0, jlen=group.legendItems.length; j<jlen; ++j) {
+      for (j=0, jlen=group.legendItems.length; j<jlen; ++j) {
         legend = group.legendItems[j];
         Encoder.update(this._graph, input.trans, "vg_legendPosition", legend.items);
         bounds.mark(legend, null, true);

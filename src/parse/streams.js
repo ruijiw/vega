@@ -17,9 +17,9 @@ module.exports = function(view) {
   function signal(sig, selector, exp, spec) {
     var n = new Node(model);
     n.evaluate = function(input) {
-      if(!input.signals[selector.signal]) return model.doNotPropagate;
+      if (!input.signals[selector.signal]) return model.doNotPropagate;
       var val = expr.eval(model, exp.fn, null, null, null, null, exp.signals);
-      if(spec.scale) val = parseSignals.scale(model, spec, val);
+      if (spec.scale) val = parseSignals.scale(model, spec, val);
       sig.value(val);
       input.signals[sig.name()] = 1;
       input.reflow = true;
@@ -34,7 +34,7 @@ module.exports = function(view) {
     var filters = selector.filters || [],
         target = selector.target;
 
-    if(target) filters.push("i."+target.type+"=="+dl.str(target.value));
+    if (target) filters.push("i."+target.type+"=="+dl.str(target.value));
 
     register[selector.event] = register[selector.event] || [];
     register[selector.event].push({
@@ -59,17 +59,17 @@ module.exports = function(view) {
 
     var router = new Node(model);
     router.evaluate = function(input) {
-      if(s[START].value() === true && s[END].value() === false) {
+      if (s[START].value() === true && s[END].value() === false) {
         // TODO: Expand selector syntax to allow start/end signals into stream.
         // Until then, prevent old middles entering stream on new start.
-        if(input.signals[name+START]) return model.doNotPropagate;
+        if (input.signals[name+START]) return model.doNotPropagate;
 
         sig.value(s[MIDDLE].value());
         input.signals[name] = 1;
         return input;
       }
 
-      if(s[END].value() === true) {
+      if (s[END].value() === true) {
         s[START].value(false);
         s[END].value(false);
       }
@@ -82,25 +82,25 @@ module.exports = function(view) {
       var val = (x == MIDDLE) ? exp : trueFn,
           sp = (x == MIDDLE) ? spec : {};
 
-      if(selector[x].event) event(s[x], selector[x], val, sp);
-      else if(selector[x].signal) signal(s[x], selector[x], val, sp);
-      else if(selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
+      if (selector[x].event) event(s[x], selector[x], val, sp);
+      else if (selector[x].signal) signal(s[x], selector[x], val, sp);
+      else if (selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
       s[x].addListener(router);
     });
   };
 
   function mergedStream(sig, selector, exp, spec) {
     selector.forEach(function(s) {
-      if(s.event)       event(sig, s, exp, spec);
-      else if(s.signal) signal(sig, s, exp, spec);
-      else if(s.start)  orderedStream(sig, s, exp, spec);
-      else if(s.stream) mergedStream(sig, s.stream, exp, spec);
+      if (s.event)       event(sig, s, exp, spec);
+      else if (s.signal) signal(sig, s, exp, spec);
+      else if (s.start)  orderedStream(sig, s, exp, spec);
+      else if (s.stream) mergedStream(sig, s.stream, exp, spec);
     });
   };
 
   (spec || []).forEach(function(sig) {
     var signal = model.signal(sig.name);
-    if(sig.expr) return;  // Cannot have an expr and stream definition.
+    if (sig.expr) return;  // Cannot have an expr and stream definition.
 
     (sig.streams || []).forEach(function(stream) {
       var sel = selector.parse(stream.type),
@@ -130,15 +130,15 @@ module.exports = function(view) {
       d = item.datum||{};
       var p = {x: m[0] - pad.left, y: m[1] - pad.top};
 
-      for(i = 0; i < handlers.length; i++) {
+      for (i = 0; i < handlers.length; i++) {
         h = handlers[i];
         filtered = h.filters.some(function(f) {
           return !expr.eval(model, f.fn, d, evt, item, p, f.signals);
         });
-        if(filtered) continue;
+        if (filtered) continue;
         
         val = expr.eval(model, h.exp.fn, d, evt, item, p, h.exp.signals); 
-        if(h.spec.scale) val = parseSignals.scale(model, h.spec, val);
+        if (h.spec.scale) val = parseSignals.scale(model, h.spec, val);
         h.signal.value(val);
         cs.signals[h.signal.name()] = 1;
       }

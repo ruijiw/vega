@@ -32,7 +32,7 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i].y).to.be.at.least(data[i-1].y)
       }
 
@@ -50,7 +50,7 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].y).to.be.at.least(data[i].y)
       }
 
@@ -68,14 +68,14 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i].y).to.be.at.least(data[i-1].y)
       }
 
       model.signal('sortBy1').value('-y').fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].y).to.be.at.least(data[i].y)
       }
 
@@ -93,9 +93,9 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].x).to.be.at.least(data[i].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i].y).to.be.at.least(data[i-1].y);
         }
       }
@@ -114,9 +114,9 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].x).to.be.at.least(data[i].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i].y).to.be.at.least(data[i-1].y);
         }
       }
@@ -124,9 +124,9 @@ describe('Sort', function() {
       model.signal('sortBy0').value('x').fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i].x).to.be.at.least(data[i-1].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i].y).to.be.at.least(data[i-1].y);
         }
       }
@@ -134,9 +134,9 @@ describe('Sort', function() {
       model.signal('sortBy1').value('-y').fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i].x).to.be.at.least(data[i-1].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i-1].y).to.be.at.least(data[i].y);
         }
       }
@@ -155,9 +155,9 @@ describe('Sort', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].x).to.be.at.least(data[i].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i].y).to.be.at.least(data[i-1].y);
         }
       }
@@ -165,9 +165,9 @@ describe('Sort', function() {
       model.signal('sortBy1').value('-y').fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=1, len=data.length; i<len; ++i) {
+      for (i=1, len=data.length; i<len; ++i) {
         expect(data[i-1].x).to.be.at.least(data[i].x);
-        if(data[i-1].x === data[i].x) {
+        if (data[i-1].x === data[i].x) {
           expect(data[i-1].y).to.be.at.least(data[i].y);
         }
       }

@@ -13,7 +13,7 @@ var Aggregator = dl.groupby();
 var proto = (Facetor.prototype = Object.create(Aggregator));
 
 proto.facet = function(f) {
-  if(!arguments.length) return this._facet;
+  if (!arguments.length) return this._facet;
   return (this._facet = f, this);
 };
 
@@ -36,7 +36,7 @@ proto._newcell = function(x) {
       tuple = cell.tuple,
       graph, pipeline;
 
-  if(this._facet !== null) {
+  if (this._facet !== null) {
     graph = facet._graph;
     pipeline = facet.pipeline.get(graph, facet);
     cell.ds  = graph.data("vg_"+tuple._id, pipeline, tuple);
@@ -49,14 +49,14 @@ proto._newcell = function(x) {
 
 proto._newtuple = function(x) {
   var t = Aggregator._newtuple.call(this, x);
-  if(this._facet !== null) {
+  if (this._facet !== null) {
     tuple.set(t, "key", this._cellkey(x));
   }
   return t;
 };
 
 proto.clear = function() {
-  if(this._facet !== null) for (var k in this._cells) {
+  if (this._facet !== null) for (var k in this._cells) {
     this._cells[k].delete(this._facet);
   }
   return Aggregator.clear.call(this);
@@ -65,7 +65,7 @@ proto.clear = function() {
 proto._add = function(x) {
   var cell = this._cell(x);
   Aggregator._add.call(this, x);
-  if(this._facet !== null) cell.ds._input.add.push(x);
+  if (this._facet !== null) cell.ds._input.add.push(x);
 };
 
 proto._mod = function(x, prev) {
@@ -73,8 +73,8 @@ proto._mod = function(x, prev) {
       cell1 = this._cell(x);
 
   Aggregator._mod.call(this, x, prev);
-  if(this._facet !== null) {  // Propagate tuples
-    if(cell0 === cell1) {
+  if (this._facet !== null) {  // Propagate tuples
+    if (cell0 === cell1) {
       cell0.ds._input.mod.push(x);
     } else {
       cell0.ds._input.rem.push(x);
@@ -86,7 +86,7 @@ proto._mod = function(x, prev) {
 proto._rem = function(x) {
   var cell = this._cell(x);
   Aggregator._rem.call(this, x);
-  if(this._facet !== null) cell.ds._input.rem.push(x);  
+  if (this._facet !== null) cell.ds._input.rem.push(x);  
 };
 
 proto.changes = function(input, output) {
@@ -112,10 +112,10 @@ proto.changes = function(input, output) {
       if (flag === C.MOD_CELL) {
         output.rem.push(cell.tuple);
       }
-      if(this._facet !== null) cell.delete(this._facet);
+      if (this._facet !== null) cell.delete(this._facet);
       delete this._cells[k];
     } else {
-      if(this._facet !== null) {
+      if (this._facet !== null) {
         // propagate sort, signals, fields, etc.
         changeset.copy(input, cell.ds._input);
       }

@@ -19,13 +19,13 @@ function derive(datum, prev) {
 // WARNING: operators should only call this once per timestamp!
 function set(t, k, v) {
   var prev = t[k];
-  if(prev === v) return;
+  if (prev === v) return;
   set_prev(t, k);
   t[k] = v;
 }
 
 function set_prev(t, k) {
-  if(t._prev === undefined) return;
+  if (t._prev === undefined) return;
   t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
   t._prev[k] = t[k];
 }

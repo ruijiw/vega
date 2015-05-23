@@ -6,11 +6,11 @@ module.exports = function parseTransforms(model, def) {
   
   // We want to rename output fields before setting any other properties,
   // as subsequent properties may require output to be set (e.g. group by).
-  if(def.output) tx.output(def.output);
+  if (def.output) tx.output(def.output);
 
   dl.keys(def).forEach(function(k) {
-    if(k === 'type' || k === 'output') return;
-    if(k === 'transform' && def.type === 'facet') return;
+    if (k === 'type' || k === 'output') return;
+    if (k === 'transform' && def.type === 'facet') return;
     (tx[k]).set(tx, def[k]);
   });
 

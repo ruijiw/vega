@@ -23,8 +23,8 @@ proto.init = function() {
 
 proto.data = function(name, pipeline, facet) {
   var db = this._data;
-  if(!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
-  if(arguments.length === 1) return db[name];
+  if (!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
+  if (arguments.length === 1) return db[name];
   return (db[name] = new Datasource(this, name, facet).pipeline(pipeline));
 };
 
@@ -39,29 +39,29 @@ proto.dataValues = function(names) {
 
 function signal(name) {
   var m = this, i, len;
-  if(!dl.isArray(name)) return this._signals[name];
+  if (!dl.isArray(name)) return this._signals[name];
   return name.map(function(n) { m._signals[n]; });
 }
 
 proto.signal = function(name, init) {
   var m = this;
-  if(arguments.length === 1) return signal.call(this, name);
+  if (arguments.length === 1) return signal.call(this, name);
   return (this._signals[name] = new Signal(this, name, init));
 };
 
 proto.signalValues = function(names) {
   var graph = this;
-  if(!arguments.length) names = dl.keys(this._signals);
-  if(!dl.isArray(names)) return this._signals[names].value();
+  if (!arguments.length) names = dl.keys(this._signals);
+  if (!dl.isArray(names)) return this._signals[names].value();
   return names.reduce(function(sg, n) {
     return (sg[n] = graph._signals[n].value(), sg);
   }, {});
 };
 
 proto.signalRef = function(ref) {
-  if(!dl.isArray(ref)) ref = dl.field(ref);
+  if (!dl.isArray(ref)) ref = dl.field(ref);
   var value = this.signal(ref.shift()).value();
-  if(ref.length > 0) {
+  if (ref.length > 0) {
     var fn = Function("s", "return s["+ref.map(dl.str).join("][")+"]");
     value = fn.call(null, value);
   }
@@ -72,7 +72,7 @@ proto.signalRef = function(ref) {
 var schedule = function(a, b) {
   // If the nodes are equal, propagate the non-reflow pulse first,
   // so that we can ignore subsequent reflow pulses. 
-  if(a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
+  if (a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
   else return a.rank - b.rank; 
 };
 
@@ -84,7 +84,7 @@ proto.propagate = function(pulse, node) {
   // a new inline datasource).
   var pq = new Heap(schedule); 
 
-  if(pulse.stamp) throw "Pulse already has a non-zero stamp"
+  if (pulse.stamp) throw "Pulse already has a non-zero stamp"
 
   pulse.stamp = ++this._stamp;
   pq.push({ node: node, pulse: pulse, rank: node.rank() });
@@ -93,12 +93,12 @@ proto.propagate = function(pulse, node) {
     v = pq.pop(), n = v.node, p = v.pulse, r = v.rank, l = n._listeners;
     reflowed = p.reflow && n.last() >= p.stamp;
 
-    if(reflowed) continue; // Don't needlessly reflow ops.
+    if (reflowed) continue; // Don't needlessly reflow ops.
 
     // A node's rank might change during a propagation (e.g. instantiating
     // a group's dataflow branch). Re-queue if it has. T
     // TODO: use pq.replace or pq.poppush?
-    if(r != n.rank()) {
+    if (r != n.rank()) {
       debug(p, ['Rank mismatch', r, n.rank()]);
       pq.push({ node: n, pulse: p, rank: n.rank() });
       continue;
@@ -120,9 +120,9 @@ proto.propagate = function(pulse, node) {
 // Dependencies get wired to the nearest collector. 
 function forEachNode(branch, fn) {
   var node, collector, i, len;
-  for(i=0, len=branch.length; i<len; ++i) {
+  for (i=0, len=branch.length; i<len; ++i) {
     node = branch[i];
-    if(node.collector()) collector = node;
+    if (node.collector()) collector = node;
     fn(node, collector, i);
   }
 }
@@ -134,7 +134,7 @@ proto.connect = function(branch) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
-    if(data.length > 0) {
+    if (data.length > 0) {
       data.forEach(function(d) { 
         graph.data(d)
           .revises(n.revises())
@@ -142,11 +142,11 @@ proto.connect = function(branch) {
       });
     }
 
-    if(signals.length > 0) {
+    if (signals.length > 0) {
       signals.forEach(function(s) { graph.signal(s).addListener(c); });
     }
 
-    if(i > 0) {
+    if (i > 0) {
       branch[i-1].addListener(branch[i]);
     }
   });
@@ -162,11 +162,11 @@ proto.disconnect = function(branch) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
-    if(data.length > 0) {
+    if (data.length > 0) {
       data.forEach(function(d) { graph.data(d).removeListener(c); });
     }
 
-    if(signals.length > 0) {
+    if (signals.length > 0) {
       signals.forEach(function(s) { graph.signal(s).removeListener(c) });
     }
 
@@ -184,7 +184,7 @@ proto.reevaluate = function(pulse, node) {
 };
 
 proto.evaluate = function(pulse, node) {
-  if(!this.reevaluate(pulse, node)) return pulse;
+  if (!this.reevaluate(pulse, node)) return pulse;
   pulse = node.evaluate(pulse);
   node.last(pulse.stamp);
   return pulse

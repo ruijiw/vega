@@ -19,8 +19,8 @@ function reset_prev(x) {
 }
 
 function finalize(cs) {
-  for(i=0, len=cs.add.length; i<len; ++i) reset_prev(cs.add[i]);
-  for(i=0, len=cs.mod.length; i<len; ++i) reset_prev(cs.mod[i]);
+  for (i=0, len=cs.add.length; i<len; ++i) reset_prev(cs.add[i]);
+  for (i=0, len=cs.mod.length; i<len; ++i) reset_prev(cs.mod[i]);
 }
 
 function copy(a, b) {

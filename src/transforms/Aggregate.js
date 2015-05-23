@@ -39,7 +39,7 @@ var TYPES = Aggregate.TYPES = {
 proto.summarize = {
   set: function(transform, summarize) {
     var i, len, f, fields, name, ops, signals = {};
-    if(!dl.isArray(fields = summarize)) { // Object syntax from dl
+    if (!dl.isArray(fields = summarize)) { // Object syntax from dl
       fields = [];
       for (name in summarize) {
         ops = dl.array(summarize[name]);
@@ -47,10 +47,10 @@ proto.summarize = {
       }
     }
 
-    for(i=0, len=fields.length; i<len; ++i) {
+    for (i=0, len=fields.length; i<len; ++i) {
       f = fields[i];
-      if(f.name.signal) signals[f.name.signal] = 1;
-      dl.array(f.ops).forEach(function(o){ if(o.signal) signals[o.signal] = 1 });
+      if (f.name.signal) signals[f.name.signal] = 1;
+      dl.array(f.ops).forEach(function(o){ if (o.signal) signals[o.signal] = 1 });
     }
 
     transform._fieldsDef = fields;
@@ -72,9 +72,9 @@ proto.accessors = function(groupby, value) {
 
 function standardize(x) {
   var acc = this._acc;
-  if(this._type === TYPES.TUPLE) {
+  if (this._type === TYPES.TUPLE) {
     return x;
-  } else if(this._type === TYPES.VALUE) {
+  } else if (this._type === TYPES.VALUE) {
     return acc.value(x);
   } else {
     return this._cache[x._id] || (this._cache[x._id] = {
@@ -86,14 +86,14 @@ function standardize(x) {
 }
 
 proto.aggr = function() {
-  if(this._aggr) return this._aggr;
+  if (this._aggr) return this._aggr;
 
   var graph = this._graph,
       groupby = this.groupby.get(graph).fields;
 
   var fields = this._fieldsDef.map(function(field) {
     var f  = dl.duplicate(field);
-    if(field.get) f.get = field.get;
+    if (field.get) f.get = field.get;
 
     f.name = f.name.signal ? graph.signalRef(f.name.signal) : f.name;
     f.ops  = f.ops.signal ? graph.signalRef(f.ops.signal) : dl.array(f.ops).map(function(o) {
@@ -108,7 +108,7 @@ proto.aggr = function() {
     .stream(true)
     .summarize(fields);
 
-  if(this._type !== TYPES.VALUE) aggr.key("_id");
+  if (this._type !== TYPES.VALUE) aggr.key("_id");
   return aggr;
 };
 
@@ -127,7 +127,7 @@ proto.transform = function(input, reset) {
   debug(input, ["aggregate"]);
 
   var output = changeset.create(input);
-  if(reset) this._reset(input, output);
+  if (reset) this._reset(input, output);
 
   var t = this,
       tpl  = this._type === TYPES.TUPLE, // reduce calls to standardize
@@ -138,9 +138,9 @@ proto.transform = function(input, reset) {
   });
 
   input.mod.forEach(function(x) {
-    if(reset) {
+    if (reset) {
       aggr._add(tpl ? x : standardize.call(t, x));  // Signal change triggered reflow
-    } else if(tuple.has_prev(x)) {
+    } else if (tuple.has_prev(x)) {
       var prev = spoof_prev.call(t, x);
       aggr._mod(tpl ? x : standardize.call(t, x), 
         tpl ? prev : standardize.call(t, prev));

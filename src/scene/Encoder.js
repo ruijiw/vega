@@ -13,7 +13,7 @@ function Encoder(graph, mark) {
 
   this._mark  = mark;
 
-  if(update) {
+  if (update) {
     this.dependency(C.DATA, update.data);
     this.dependency(C.SCALES, update.scales);
     this.dependency(C.SIGNALS, update.signals);
@@ -39,9 +39,9 @@ proto.evaluate = function(input) {
       req = input.request,
       i, len, item, prop;
 
-  if(req) {
-    if(prop = props[req]) {
-      for(i=0, len=input.mod.length; i<len; ++i) {
+  if (req) {
+    if (prop = props[req]) {
+      for (i=0, len=input.mod.length; i<len; ++i) {
         item = input.mod[i];
         encode.call(this, prop, item, input.trans, db, sg, preds);
       }
@@ -51,23 +51,23 @@ proto.evaluate = function(input) {
   }
 
   // Items marked for removal are at the head of items. Process them first.
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  for (i=0, len=input.rem.length; i<len; ++i) {
     item = input.rem[i];
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
-    if(exit)   encode.call(this, exit,   item, input.trans, db, sg, preds); 
-    if(input.trans && !exit) input.trans.interpolate(item, EMPTY);
-    else if(!input.trans) item.remove();
+    if (update) encode.call(this, update, item, input.trans, db, sg, preds);
+    if (exit)   encode.call(this, exit,   item, input.trans, db, sg, preds); 
+    if (input.trans && !exit) input.trans.interpolate(item, EMPTY);
+    else if (!input.trans) item.remove();
   }
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     item = input.add[i];
-    if(enter)  encode.call(this, enter,  item, input.trans, db, sg, preds);
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
+    if (enter)  encode.call(this, enter,  item, input.trans, db, sg, preds);
+    if (update) encode.call(this, update, item, input.trans, db, sg, preds);
     item.status = C.UPDATE;
   }
 
-  if(update) {
-    for(i=0, len=input.mod.length; i<len; ++i) {
+  if (update) {
+    for (i=0, len=input.mod.length; i<len; ++i) {
       item = input.mod[i];
       encode.call(this, update, item, input.trans, db, sg, preds);
     }

@@ -16,9 +16,9 @@ describe('Fold', function() {
   };
 
   function expectFold(val, data, idx, key, value) {
-    if(!idx)   idx = values.indexOf(val)*3;
-    if(!key)   key = "key";
-    if(!value) value = "value";
+    if (!idx)   idx = values.indexOf(val)*3;
+    if (!key)   key = "key";
+    if (!value) value = "value";
 
     expect(data[idx]).to.have.property('country', val.country);
     expect(data[idx]).to.have.property(key, 'gold');

@@ -30,10 +30,10 @@ module.exports = function parsePredicate(model, spec) {
     dl.array(operands).forEach(function(o, i) {
       var signal, name = "o"+i, def = "";
       
-      if(o.value !== undefined) def = dl.str(o.value);
-      else if(o.arg)    def = "args["+dl.str(o.arg)+"]";
-      else if(o.signal) def = parseSignal(o.signal, signals);
-      else if(o.predicate) {
+      if (o.value !== undefined) def = dl.str(o.value);
+      else if (o.arg)    def = "args["+dl.str(o.arg)+"]";
+      else if (o.signal) def = parseSignal(o.signal, signals);
+      else if (o.predicate) {
         var pred = model.predicate(o.predicate),
             p = "predicates["+dl.str(o.predicate)+"]";
 
@@ -43,8 +43,8 @@ module.exports = function parsePredicate(model, spec) {
         dl.keys(o.input).forEach(function(k) {
           var i = o.input[k], signal;
           def += "args["+dl.str(k)+"] = ";
-          if(i.signal)   def += parseSignal(i.signal, signals);
-          else if(i.arg) def += "args["+dl.str(i.arg)+"]";
+          if (i.signal)   def += parseSignal(i.signal, signals);
+          else if (i.arg) def += "args["+dl.str(i.arg)+"]";
           def+=", ";
         });
 
@@ -64,7 +64,7 @@ module.exports = function parsePredicate(model, spec) {
 
   function parseComparator(spec) {
     var ops = parseOperands(spec.operands);
-    if(spec.type == '=') spec.type = '==';
+    if (spec.type == '=') spec.type = '==';
 
     return {
       code: ops.code + "return " + ["o0", "o1"].join(spec.type) + ";",
@@ -78,8 +78,8 @@ module.exports = function parsePredicate(model, spec) {
         o = [], i = 0, len = spec.operands.length;
 
     while(o.push("o"+i++)<len);
-    if(spec.type == 'and') spec.type = '&&';
-    else if(spec.type == 'or') spec.type = '||';
+    if (spec.type == 'and') spec.type = '&&';
+    else if (spec.type == 'or') spec.type = '||';
 
     return {
       code: ops.code + "return " + o.join(spec.type) + ";",
@@ -90,22 +90,22 @@ module.exports = function parsePredicate(model, spec) {
 
   function parseIn(spec) {
     var o = [spec.item], code = "";
-    if(spec.range) o.push.apply(o, spec.range);
-    if(spec.scale) {
+    if (spec.range) o.push.apply(o, spec.range);
+    if (spec.scale) {
       code = parseScale(spec.scale, o);
     }
 
     var ops = parseOperands(o);
     code = ops.code + code;
 
-    if(spec.data) {
+    if (spec.data) {
       var field = dl.field(spec.field).map(dl.str);
       code += "var where = function(d) { return d["+field.join("][")+"] == o0 };\n";
       code += "return db["+dl.str(spec.data)+"].filter(where).length > 0;";
-    } else if(spec.range) {
+    } else if (spec.range) {
       // TODO: inclusive/exclusive range?
       // TODO: inverting ordinal scales
-      if(spec.scale) code += "o1 = scale(o1);\no2 = scale(o2);\n";
+      if (spec.scale) code += "o1 = scale(o1);\no2 = scale(o2);\n";
       code += "return o1 < o2 ? o1 <= o0 && o0 <= o2 : o2 <= o0 && o0 <= o1";
     }
 
@@ -121,16 +121,16 @@ module.exports = function parsePredicate(model, spec) {
     var code = "var scale = ", 
         idx  = ops.length;
 
-    if(dl.isString(spec)) {
+    if (dl.isString(spec)) {
       ops.push({ value: spec });
       code += "this.root().scale(o"+idx+")";
-    } else if(spec.arg) {  // Scale function is being passed as an arg
+    } else if (spec.arg) {  // Scale function is being passed as an arg
       ops.push(spec);
       code += "o"+idx;
-    } else if(spec.name) { // Full scale parameter {name: ..}
+    } else if (spec.name) { // Full scale parameter {name: ..}
       ops.push(dl.isString(spec.name) ? {value: spec.name} : spec.name);
       code += "(this.isFunction(o"+idx+") ? o"+idx+" : ";
-      if(spec.scope) {
+      if (spec.scope) {
         ops.push(spec.scope);
         code += "(o"+(idx+1)+".scale || this.root().scale)(o"+idx+")";
       } else {
@@ -139,7 +139,7 @@ module.exports = function parsePredicate(model, spec) {
       code += ")"
     }
 
-    if(spec.invert === true) {  // Allow spec.invert.arg?
+    if (spec.invert === true) {  // Allow spec.invert.arg?
       code += ".invert"
     }
 

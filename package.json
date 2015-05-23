@@ -14,16 +14,19 @@
   "devDependencies": {
     "browserify": "^9.0.8",
     "browserify-shim": "^3.8.5",
+    "browserify-versionify": "^1.0.4",
     "chai": "^1.10.0",
     "chromedriver": "^2.14.1",
     "exorcist": "^0.4.0",
     "gulp": "^3.8.11",
+    "gulp-jshint": "^1.11.0",
     "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^1.5.1",
     "gulp-spawn-mocha": "^2.0.1",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.4",
     "heap": "^0.2.6",
+    "jshint-summary": "^0.4.0",
     "mocha": "^2.1.0",
     "pegjs": "0.8.x",
     "selenium-server-standalone-jar": "^2.45.0",
@@ -41,7 +44,8 @@
   },
   "browserify": {
     "transform": [
-      "browserify-shim"
+      "browserify-shim",
+      "browserify-versionify"
     ]
   },
   "browserify-shim": {

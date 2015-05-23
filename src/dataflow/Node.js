@@ -5,7 +5,7 @@ var dl = require('datalib'),
 var node_id = 1;
 
 function Node(graph) {
-  if(graph) this.init(graph);
+  if (graph) this.init(graph);
   return this;
 }
 
@@ -45,37 +45,37 @@ proto.clone = function() {
 proto.rank = function() { return this._rank; };
 
 proto.last = function(stamp) { 
-  if(!arguments.length) return this._stamp;
+  if (!arguments.length) return this._stamp;
   this._stamp = stamp;
   return this;
 };
 
 proto.dependency = function(type, deps) {
   var d = this._deps[type];
-  if(arguments.length === 1) return d;
-  if(deps === null) { // Clear dependencies of a certain type
+  if (arguments.length === 1) return d;
+  if (deps === null) { // Clear dependencies of a certain type
     while(d.length > 0) d.pop();
   } else {
-    if(!dl.isArray(deps) && d.indexOf(deps) < 0) d.push(deps);
+    if (!dl.isArray(deps) && d.indexOf(deps) < 0) d.push(deps);
     else d.push.apply(d, dl.array(deps));
   }
   return this;
 };
 
 proto.router = function(bool) {
-  if(!arguments.length) return this._isRouter;
+  if (!arguments.length) return this._isRouter;
   this._isRouter = !!bool
   return this;
 };
 
 proto.collector = function(bool) {
-  if(!arguments.length) return this._isCollector;
+  if (!arguments.length) return this._isCollector;
   this._isCollector = !!bool;
   return this;
 };
 
 proto.revises = function(bool) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
   this._revises = !!bool;
   return this;
 };
@@ -85,12 +85,12 @@ proto.listeners = function() {
 };
 
 proto.addListener = function(l) {
-  if(!(l instanceof Node)) throw "Listener is not a Node";
-  if(this._registered[l._id]) return this;
+  if (!(l instanceof Node)) throw "Listener is not a Node";
+  if (this._registered[l._id]) return this;
 
   this._listeners.push(l);
   this._registered[l._id] = 1;
-  if(this._rank > l._rank) {
+  if (this._rank > l._rank) {
     var q = [l];
     while(q.length) {
       var cur = q.splice(0,1)[0];

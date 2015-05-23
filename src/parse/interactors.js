@@ -39,7 +39,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
     var m, r, i, len;
     marks = dl.array(marks);
 
-    for(i = 0, len = marks.length; i < len; i++) {
+    for (i = 0, len = marks.length; i < len; i++) {
       m = marks[i];
       if (r = mk[m.type]) {
         marks[i] = dl.duplicate(r);

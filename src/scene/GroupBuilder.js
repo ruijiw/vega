@@ -80,9 +80,9 @@ proto.child = function(name, group_id) {
       i = 0, len = children.length,
       child;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     child = children[i];
-    if(child.type == C.MARK && child.builder._def.name == name) break;
+    if (child.type == C.MARK && child.builder._def.name == name) break;
   }
 
   return child.builder;
@@ -95,11 +95,11 @@ function recurse(input) {
       hasLegends = dl.array(this._def.legends).length > 0,
       i, len, group, pipeline, def, inline = false;
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     group = input.add[i];
-    if(hasMarks) buildMarks.call(this, input, group);
-    if(hasAxes)  buildAxes.call(this, input, group);
-    if(hasLegends) buildLegends.call(this, input, group);
+    if (hasMarks) buildMarks.call(this, input, group);
+    if (hasAxes)  buildAxes.call(this, input, group);
+    if (hasLegends) buildLegends.call(this, input, group);
   }
 
   // Wire up new children builders in reverse to minimize graph rewrites.
@@ -119,36 +119,36 @@ function recurse(input) {
       inline = inline && (pipeline[pipeline.length-1].listeners().length == 1); // Reactive geom
       c.inline = inline;
 
-      if(inline) c.builder.evaluate(input);
+      if (inline) c.builder.evaluate(input);
       else this._recursor.addListener(c.builder);
     }
   }
 
-  for(i=0, len=input.mod.length; i<len; ++i) {
+  for (i=0, len=input.mod.length; i<len; ++i) {
     group = input.mod[i];
     // Remove temporary connection for marks that draw from a source
-    if(hasMarks) {
+    if (hasMarks) {
       builder._children[group._id].forEach(function(c) {
-        if(c.type == C.MARK && !c.inline && builder._graph.data(c.from) !== undefined ) {
+        if (c.type == C.MARK && !c.inline && builder._graph.data(c.from) !== undefined ) {
           builder._recursor.removeListener(c.builder);
         }
       });
     }
 
     // Update axes data defs
-    if(hasAxes) {
+    if (hasAxes) {
       parseAxes(builder._graph, builder._def.axes, group.axes, group);
       group.axes.forEach(function(a, i) { a.def() });
     }
 
     // Update legend data defs
-    if(hasLegends) {
+    if (hasLegends) {
       parseLegends(builder._graph, builder._def.legends, group.legends, group);
       group.legends.forEach(function(l, i) { l.def() });
     }   
   }
 
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  for (i=0, len=input.rem.length; i<len; ++i) {
     group = input.rem[i];
     // For deleted groups, disconnect their children
     builder._children[group._id].forEach(function(c) { 
@@ -163,11 +163,11 @@ function recurse(input) {
 
 function scale(name, scale) {
   var group = this;
-  if(arguments.length === 2) return (group._scales[name] = scale, scale);
+  if (arguments.length === 2) return (group._scales[name] = scale, scale);
   while(scale == null) {
     scale = group._scales[name];
     group = group.mark ? group.mark.group : group._parent;
-    if(!group) break;
+    if (!group) break;
   }
   return scale;
 }
@@ -194,7 +194,7 @@ function buildMarks(input, group) {
       listeners = [],
       mark, from, inherit, i, len, m, b;
 
-  for(i=0, len=marks.length; i<len; ++i) {
+  for (i=0, len=marks.length; i<len; ++i) {
     mark = marks[i];
     from = mark.from || {};
     inherit = "vg_"+group.datum._id;

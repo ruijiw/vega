@@ -22,7 +22,7 @@ function compile(model, mark, spec) {
   for (i=0, len=names.length; i<len; ++i) {
     ref = spec[name = names[i]];
     code += (i > 0) ? "\n  " : "  ";
-    if(ref.rule) {
+    if (ref.rule) {
       ref = rule(model, name, ref.rule);
       code += "\n  " + ref.code
     } else {
@@ -32,7 +32,7 @@ function compile(model, mark, spec) {
 
     vars[name] = true;
     DEPS.forEach(function(p) {
-      if(ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
+      if (ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
     });
     deps.reflow = deps.reflow || ref.reflow;
   }
@@ -128,19 +128,19 @@ function rule(model, name, rules) {
     dl.keys(r.input).forEach(function(k) {
       var ref = valueRef(i, r.input[k]);
       input.push(dl.str(k)+": "+ref.val);
-      if(ref.signals) signals.push.apply(signals, dl.array(ref.signals));
-      if(ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
+      if (ref.signals) signals.push.apply(signals, dl.array(ref.signals));
+      if (ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
     });
 
     ref = valueRef(name, r);
-    if(ref.signals) signals.push.apply(signals, dl.array(ref.signals));
-    if(ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
+    if (ref.signals) signals.push.apply(signals, dl.array(ref.signals));
+    if (ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
 
-    if(predName) {
+    if (predName) {
       signals.push.apply(signals, pred.signals);
       db.push.apply(db, pred.data);
       inputs.push(args+" = {"+input.join(', ')+"}");
-      code += "if("+p+".call("+p+","+args+", db, signals, predicates)) {\n" +
+      code += "if ("+p+".call("+p+","+args+", db, signals, predicates)) {\n" +
         "    this.tpl.set(o, "+dl.str(name)+", "+ref.val+");\n";
       code += rules[i+1] ? "  } else " : "  }";
     } else {
@@ -188,7 +188,7 @@ function valueRef(name, ref) {
     signals.push(sgRef.shift());
   }
 
-  if(ref.field !== undefined) {
+  if (ref.field !== undefined) {
     ref.field = dl.isString(ref.field) ? {datum: ref.field} : ref.field;
     fRef  = fieldRef(ref.field);
     val = fRef.val;
@@ -200,7 +200,7 @@ function valueRef(name, ref) {
 
     // run through scale function if val specified.
     // if no val, scale function is predicate arg.
-    if(val !== null || ref.band || ref.mult || ref.offset) {
+    if (val !== null || ref.band || ref.mult || ref.offset) {
       val = scale + (ref.band ? ".rangeBand()" : 
         "("+(val !== null ? val : "item.datum.data")+")");
     } else {
@@ -229,8 +229,8 @@ function colorRef(type, x, y, z) {
       signals = [], scales = [];
 
   [xx, yy, zz].forEach(function(v) {
-    if(v.signals) signals.push.apply(signals, v.signals);
-    if(v.scales)  scales.push(v.scales);
+    if (v.signals) signals.push.apply(signals, v.signals);
+    if (v.scales)  scales.push(v.scales);
   });
 
   return {
@@ -244,7 +244,7 @@ function colorRef(type, x, y, z) {
 // {field: {group: "foo"} }  -> group.foo
 // {field: {parent: "foo"} } -> group.datum.foo
 function fieldRef(ref) {
-  if(dl.isString(ref)) {
+  if (dl.isString(ref)) {
     return {val: dl.field(ref).map(dl.str).join("][")};
   } 
 
@@ -258,16 +258,16 @@ function fieldRef(ref) {
       signals = r.signals || [],
       reflow  = r.reflow  || false; // Nested fieldrefs trigger full reeval of Encoder.
 
-  if(ref.datum) {
+  if (ref.datum) {
     val = "item.datum["+val+"]";
     fields.push(ref.datum);
-  } else if(ref.group) {
+  } else if (ref.group) {
     val = scope+"group["+val+"]";
     reflow = true;
-  } else if(ref.parent) {
+  } else if (ref.parent) {
     val = scope+"group.datum["+val+"]";
     reflow = true;
-  } else if(ref.signal) {
+  } else if (ref.signal) {
     val = "signals["+val+"]";
     signals.push(dl.field(ref.signal)[0]);
     reflow = true;
@@ -283,16 +283,16 @@ function scaleRef(ref) {
   var scale = null,
       fr = null;
 
-  if(dl.isString(ref)) {
+  if (dl.isString(ref)) {
     scale = dl.str(ref);
-  } else if(ref.name) {
+  } else if (ref.name) {
     scale = dl.isString(ref.name) ? dl.str(ref.name) : (fr = fieldRef(ref.name)).val;
   } else {
     scale = (fr = fieldRef(ref)).val;
   }
 
   scale = "group.scale("+scale+")";
-  if(ref.invert) scale += ".invert";  // TODO: ordinal scales
+  if (ref.invert) scale += ".invert";  // TODO: ordinal scales
 
   return fr ? (fr.val = scale, fr) : {val: scale};
 }

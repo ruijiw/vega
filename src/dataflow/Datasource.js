@@ -23,12 +23,12 @@ function Datasource(graph, name, facet) {
 var proto = Datasource.prototype;
 
 proto.name = function(name) {
-  if(!arguments.length) return this._name;
+  if (!arguments.length) return this._name;
   return (this._name = name, this);
 };
 
 proto.source = function(src) {
-  if(!arguments.length) return this._source;
+  if (!arguments.length) return this._source;
   return (this._source = this._graph.data(src));
 };
 
@@ -57,7 +57,7 @@ proto.update = function(where, field, func) {
         next = func(x);
     if (prev !== next) {
       tuple.set(x, field, next);
-      if(ids[x._id] !== 1) {
+      if (ids[x._id] !== 1) {
         mod.push(x);
         ids[x._id] = 1;
       }
@@ -67,7 +67,7 @@ proto.update = function(where, field, func) {
 };
 
 proto.values = function(data) {
-  if(!arguments.length)
+  if (!arguments.length)
     return this._collector ? this._collector.data() : this._data;
 
   // Replace backing data
@@ -76,14 +76,14 @@ proto.values = function(data) {
   return this;
 };
 
-function set_prev(d) { if(d._prev === undefined) d._prev = C.SENTINEL; }
+function set_prev(d) { if (d._prev === undefined) d._prev = C.SENTINEL; }
 
 proto.revises = function(p) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
 
   // If we've not needed prev in the past, but a new dataflow node needs it now
   // ensure existing tuples have prev set.
-  if(!this._revises && p) {
+  if (!this._revises && p) {
     this._data.forEach(set_prev);
     this._input.add.forEach(set_prev); // New tuples that haven't yet been merged into _data
   }
@@ -95,16 +95,16 @@ proto.revises = function(p) {
 proto.last = function() { return this._output; };
 
 proto.fire = function(input) {
-  if(input) this._input = input;
+  if (input) this._input = input;
   this._graph.propagate(this._input, this._pipeline[0]);
   return this;
 };
 
 proto.pipeline = function(pipeline) {
   var ds = this, n, c;
-  if(!arguments.length) return this._pipeline;
+  if (!arguments.length) return this._pipeline;
 
-  if(pipeline.length) {
+  if (pipeline.length) {
     // If we have a pipeline, add a collector to the end to materialize
     // the output.
     ds._collector = new Collector(this._graph);
@@ -128,17 +128,17 @@ proto.pipeline = function(pipeline) {
     // Delta might contain fields updated through API
     dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1 });
 
-    if(input.reflow) {
+    if (input.reflow) {
       out.mod = ds._data.slice();
     } else {
       // update data
-      if(delta.rem.length) {
+      if (delta.rem.length) {
         rem = tuple.idMap(delta.rem);
         ds._data = ds._data
           .filter(function(x) { return rem[x._id] !== 1 });
       }
 
-      if(delta.add.length) ds._data = ds._data.concat(delta.add);
+      if (delta.add.length) ds._data = ds._data.concat(delta.add);
 
       // reset change list
       ds._input = changeset.create();
@@ -164,7 +164,7 @@ proto.pipeline = function(pipeline) {
     debug(input, ["output", ds._name]);
     var output = changeset.create(input, true);
 
-    if(ds._facet) {
+    if (ds._facet) {
       ds._facet.values = ds.values();
       input.facet = null;
     }
@@ -209,8 +209,8 @@ proto.listener = function() {
 };
 
 proto.addListener = function(l) {
-  if(l instanceof Datasource) {
-    if(this._collector) this._collector.addListener(l.listener());
+  if (l instanceof Datasource) {
+    if (this._collector) this._collector.addListener(l.listener());
     else this._pipeline[0].addListener(l.listener());
   } else {
     this._pipeline[this._pipeline.length-1].addListener(l);      

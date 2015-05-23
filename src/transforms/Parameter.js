@@ -50,7 +50,7 @@ proto.get = function(graph) {
     return this._get(); // TODO: support signal as dataTypes
   }
 
-  for(s in this._signals) {
+  for (s in this._signals) {
     idx  = this._signals[s];
     val  = graph.signalRef(s);
 

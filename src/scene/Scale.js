@@ -38,7 +38,7 @@ proto.evaluate = function(input) {
 proto.dependency = function(type, deps) {
   if (arguments.length == 2) {
     deps = dl.array(deps);
-    for(var i=0, len=deps.length; i<len; ++i) {
+    for (var i=0, len=deps.length; i<len; ++i) {
       this._graph[type == C.DATA ? C.DATA : C.SIGNAL](deps[i])
         .addListener(this._parent);
     }
@@ -188,15 +188,15 @@ function aggrType(def, scale) {
 
   // If we're operating over only a single domain, send full tuples
   // through for efficiency (fewer accessor creations/calls)
-  if(refs.length == 1 && dl.array(refs[0].field).length == 1) {
+  if (refs.length == 1 && dl.array(refs[0].field).length == 1) {
     return Aggregate.TYPES.TUPLE;
   }
 
   // With quantitative scales, we only care about min/max.
-  if(!isUniques(scale)) return Aggregate.TYPES.VALUE;
+  if (!isUniques(scale)) return Aggregate.TYPES.VALUE;
 
   // If we don't sort, then we can send values directly to aggrs as well
-  if(!def.sort) return Aggregate.TYPES.VALUE;
+  if (!def.sort) return Aggregate.TYPES.VALUE;
 
   return Aggregate.TYPES.MULTI;
 }
@@ -210,16 +210,16 @@ function getCache(which, def, scale, group) {
       fields = getFields(refs[0], group),
       i, rlen, j, flen, ref, field;
 
-  if(scale[ck]) return scale[ck];
+  if (scale[ck]) return scale[ck];
 
   var cache = scale[ck] = new Aggregate(this._graph).type(atype),
       groupby, summarize;
 
-  if(uniques) {
-    if(atype === Aggregate.TYPES.VALUE) {
+  if (uniques) {
+    if (atype === Aggregate.TYPES.VALUE) {
       groupby = [{ name: C.GROUPBY, get: dl.identity }];
       summarize = {"*": C.COUNT};
-    } else if(atype === Aggregate.TYPES.TUPLE) {
+    } else if (atype === Aggregate.TYPES.TUPLE) {
       groupby = [{ name: C.GROUPBY, get: dl.$(fields[0]) }];
       summarize = sort ? [{
         name: C.VALUE,
@@ -258,7 +258,7 @@ function dataRef(which, def, scale, group) {
       uniques = isUniques(scale),
       i, rlen, j, flen, ref, fields, field;
 
-  for(i=0, rlen=refs.length; i<rlen; ++i) {
+  for (i=0, rlen=refs.length; i<rlen; ++i) {
     ref = refs[i];
     from = ref.data || "vg_"+group.datum._id;
     data = graph.data(from)
@@ -268,12 +268,12 @@ function dataRef(which, def, scale, group) {
     if (data.stamp <= this._stamp) continue;
 
     fields = getFields(ref, group);
-    for(j=0, flen=fields.length; j<flen; ++j) {
+    for (j=0, flen=fields.length; j<flen; ++j) {
       field = fields[j];
 
-      if(atype === Aggregate.TYPES.VALUE) {
+      if (atype === Aggregate.TYPES.VALUE) {
         cache.accessors(null, field);
-      } else if(atype === Aggregate.TYPES.MULTI) {
+      } else if (atype === Aggregate.TYPES.MULTI) {
         cache.accessors(field, ref.sort || sort.field);
       } // Else (Tuple-case) is handled by the aggregator accessors by default
 

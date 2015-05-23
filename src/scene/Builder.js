@@ -36,7 +36,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
   this._parent = parent;
   this._parent_id = parent_id;
 
-  if(def.from && (def.from.mark || def.from.transform || def.from.modify)) {
+  if (def.from && (def.from.mark || def.from.transform || def.from.modify)) {
     inlineDs.call(this);
   }
 
@@ -46,7 +46,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
   this._encoder = new Encoder(this._graph, this._mark);
   this._bounder = new Bounder(this._graph, this._mark);
 
-  if(this._ds) { this._encoder.dependency(C.DATA, this._from); }
+  if (this._ds) { this._encoder.dependency(C.DATA, this._from); }
 
   // Since Builders are super nodes, copy over encoder dependencies
   // (bounder has no registered dependencies).
@@ -58,12 +58,12 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
 };
 
 proto.revises = function(p) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
 
   // If we've not needed prev in the past, but a new inline ds needs it now
   // ensure existing items have prev set.
-  if(!this._revises && p) {
-    this._items.forEach(function(d) { if(d._prev === undefined) d._prev = C.SENTINEL; });
+  if (!this._revises && p) {
+    this._items.forEach(function(d) { if (d._prev === undefined) d._prev = C.SENTINEL; });
   }
 
   this._revises = this._revises || p;
@@ -77,7 +77,7 @@ function inlineDs() {
       geom = from.mark,
       src, name, spec, sibling, output;
 
-  if(geom) {
+  if (geom) {
     name = ["vg", this._parent_id, geom].join("_");
     spec = {
       name: name,
@@ -99,9 +99,9 @@ function inlineDs() {
   this._ds = parseData.datasource(this._graph, spec);
   var revises = this._ds.revises();
 
-  if(geom) {
+  if (geom) {
     sibling = this.sibling(geom).revises(revises);
-    if(sibling._isSuper) sibling.addListener(this._ds.listener());
+    if (sibling._isSuper) sibling.addListener(this._ds.listener());
     else sibling._bounder.addListener(this._ds.listener());
   } else {
     // At this point, we have a new datasource but it is empty as
@@ -132,8 +132,8 @@ proto.connect = function() {
     builder._parent.scale(s).addListener(builder);
   });
 
-  if(this._parent) {
-    if(this._isSuper) this.addListener(this._parent._collector);
+  if (this._parent) {
+    if (this._isSuper) this.addListener(this._parent._collector);
     else this._bounder.addListener(this._parent._collector);
   }
 
@@ -142,7 +142,7 @@ proto.connect = function() {
 
 proto.disconnect = function() {
   var builder = this;
-  if(!this._listeners.length) return this;
+  if (!this._listeners.length) return this;
 
   Node.prototype.disconnect.call(this);
   this._graph.disconnect(this.pipeline());
@@ -161,7 +161,7 @@ proto.evaluate = function(input) {
 
   var output, fullUpdate, fcs, data;
 
-  if(this._ds) {
+  if (this._ds) {
     output = changeset.create(input);
 
     // We need to determine if any encoder dependencies have been updated.
@@ -174,12 +174,12 @@ proto.evaluate = function(input) {
 
     // If a scale or signal in the update propset has been updated, 
     // send forward all items for reencoding if we do an early return.
-    if(fullUpdate) output.mod = this._mark.items.slice();
+    if (fullUpdate) output.mod = this._mark.items.slice();
 
     fcs = this._ds.last();
-    if(!fcs) {
+    if (!fcs) {
       output.reflow = true
-    } else if(fcs.stamp > this._stamp) {
+    } else if (fcs.stamp > this._stamp) {
       output = joinDatasource.call(this, fcs, this._ds.values(), fullUpdate);
     }
   } else {
@@ -197,15 +197,15 @@ function newItem() {
       item = tuple.ingest(new Item(this._mark), prev);
 
   // For the root node's item
-  if(this._def.width)  tuple.set(item, "width",  this._def.width);
-  if(this._def.height) tuple.set(item, "height", this._def.height);
+  if (this._def.width)  tuple.set(item, "width",  this._def.width);
+  if (this._def.height) tuple.set(item, "height", this._def.height);
   return item;
 };
 
 function join(data, keyf, next, output, prev, mod) {
   var i, key, len, item, datum, enter;
 
-  for(i=0, len=data.length; i<len; ++i) {
+  for (i=0, len=data.length; i<len; ++i) {
     datum = data[i];
     item  = keyf ? this._map[key = keyf(datum)] : prev[i];
     enter = item ? false : (item = newItem.call(this), true);
@@ -214,8 +214,8 @@ function join(data, keyf, next, output, prev, mod) {
     tuple.set(item, "key", key);
     this._map[key] = item;
     next.push(item);
-    if(enter) output.add.push(item);
-    else if(!mod || (mod && mod[datum._id])) output.mod.push(item);
+    if (enter) output.add.push(item);
+    else if (!mod || (mod && mod[datum._id])) output.mod.push(item);
   }
 }
 
@@ -232,7 +232,7 @@ function joinDatasource(input, data, fullUpdate) {
   // Then build the rest of the data values (which won't contain rem).
   // This will preserve the sort order without needing anything extra.
 
-  for(i=0, len=rem.length; i<len; ++i) {
+  for (i=0, len=rem.length; i<len; ++i) {
     item = this._map[key = keyf(rem[i])];
     item.status = C.EXIT;
     next.push(item);

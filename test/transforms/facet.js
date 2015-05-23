@@ -24,7 +24,7 @@ describe('Facet', function() {
     expect(facets[idx]).to.have.property('key', values[min].country);
     expect(facets[idx].values).to.have.length(len);
 
-    for(i=0; i<len; ++i) {
+    for (i=0; i<len; ++i) {
       expect(facets[idx].values[i]).to.deep.include(values[min+i]);
     }
   }

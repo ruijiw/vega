@@ -85,16 +85,16 @@ prototype.touchmove = prototype.mousemove = function(evt) {
 
   if (p === a) {
     this.fire("mousemove", evt);
-    if(evt.type == "touchmove") this.fire("touchmove", evt);
+    if (evt.type == "touchmove") this.fire("touchmove", evt);
     return;
   } else if (a) {
     this.fire("mouseout", evt);
-    if(evt.type == "touchend") this.fire("touchend", evt);
+    if (evt.type == "touchend") this.fire("touchend", evt);
   }
   this._active = p;
   if (p) {
     this.fire("mouseover", evt);
-    if(evt.type == "touchstart") this.fire("touchstart", evt);
+    if (evt.type == "touchstart") this.fire("touchstart", evt);
   }
 };
 

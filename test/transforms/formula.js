@@ -25,7 +25,7 @@ describe('Formula', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=0, len=data.length; i<len; ++i) {
+      for (i=0, len=data.length; i<len; ++i) {
         d = data[i];
         expect(d.z).to.equal(d.x + d.y);
       }
@@ -50,7 +50,7 @@ describe('Formula', function() {
           i, len, d;
 
       expect(data).to.have.length(20);
-      for(i=0, len=data.length; i<len; ++i) {
+      for (i=0, len=data.length; i<len; ++i) {
         d = data[i];
         expect(d.z).to.equal(2 * (d.x + d.y));
       }
@@ -59,7 +59,7 @@ describe('Formula', function() {
       model.signal('multipler').value(4).fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=0, len=data.length; i<len; ++i) {
+      for (i=0, len=data.length; i<len; ++i) {
         d = data[i];
         expect(d.z).to.equal(4 * (d.x + d.y));
       }
@@ -68,7 +68,7 @@ describe('Formula', function() {
       model.signal('multipler').value(15).fire();
       data = ds.values();
       expect(data).to.have.length(20);
-      for(i=0, len=data.length; i<len; ++i) {
+      for (i=0, len=data.length; i<len; ++i) {
         d = data[i];
         expect(d.z).to.equal(15 * (d.x + d.y));
       }

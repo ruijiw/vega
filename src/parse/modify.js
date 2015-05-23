@@ -5,8 +5,8 @@ var dl = require('datalib'),
     C = require('../util/constants');
 
 var filter = function(field, value, src, dest) {
-  for(var i = src.length-1; i >= 0; --i) {
-    if(src[i][field] == value)
+  for (var i = src.length-1; i >= 0; --i) {
+    if (src[i][field] == value)
       dest.push.apply(dest, src.splice(i, 1));
   }
 };
@@ -19,7 +19,7 @@ module.exports = function parseModify(model, def, ds) {
       node = new Node(model);
 
   node.evaluate = function(input) {
-    if(predicate !== null) {
+    if (predicate !== null) {
       var db = {};
       (predicate.data||[]).forEach(function(d) { db[d] = model.data(d).values(); });
 
@@ -28,7 +28,7 @@ module.exports = function parseModify(model, def, ds) {
     }
 
     debug(input, [def.type+"ing", reeval]);
-    if(!reeval) return input;
+    if (!reeval) return input;
 
     var datum = {}, 
         value = signal ? model.signalRef(def.signal) : null,
@@ -41,26 +41,26 @@ module.exports = function parseModify(model, def, ds) {
     // We have to modify ds._data so that subsequent pulses contain
     // our dynamic data. W/o modifying ds._data, only the output
     // collector will contain dynamic tuples. 
-    if(def.type == C.ADD) {
+    if (def.type == C.ADD) {
       t = tuple.ingest(datum, prev);
       input.add.push(t);
       d._data.push(t);
-    } else if(def.type == C.REMOVE) {
+    } else if (def.type == C.REMOVE) {
       filter(def.field, value, input.add, input.rem);
       filter(def.field, value, input.mod, input.rem);
       d._data = d._data.filter(function(x) { return x[def.field] !== value });
-    } else if(def.type == C.TOGGLE) {
+    } else if (def.type == C.TOGGLE) {
       var add = [], rem = [];
       filter(def.field, value, input.rem, add);
       filter(def.field, value, input.add, rem);
       filter(def.field, value, input.mod, rem);
-      if(add.length == 0 && rem.length == 0) add.push(tuple.ingest(datum));
+      if (add.length == 0 && rem.length == 0) add.push(tuple.ingest(datum));
 
       input.add.push.apply(input.add, add);
       d._data.push.apply(d._data, add);
       input.rem.push.apply(input.rem, rem);
       d._data = d._data.filter(function(x) { return rem.indexOf(x) === -1 });
-    } else if(def.type == C.CLEAR) {
+    } else if (def.type == C.CLEAR) {
       input.rem.push.apply(input.rem, input.add);
       input.rem.push.apply(input.rem, input.mod);
       input.add = [];
@@ -72,8 +72,8 @@ module.exports = function parseModify(model, def, ds) {
     return input;
   };
 
-  if(signalName) node.dependency(C.SIGNALS, signalName);
-  if(predicate)  node.dependency(C.SIGNALS, predicate.signals);
+  if (signalName) node.dependency(C.SIGNALS, signalName);
+  if (predicate)  node.dependency(C.SIGNALS, predicate.signals);
   
   return node;
 }

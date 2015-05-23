@@ -14,7 +14,7 @@ var proto = (Sort.prototype = new Transform());
 proto.transform = function(input) {
   debug(input, ["sorting"]);
 
-  if(input.add.length || input.mod.length || input.rem.length) {
+  if (input.add.length || input.mod.length || input.rem.length) {
     input.sort = dl.comparator(this.by.get(this._graph).fields);
   }
 

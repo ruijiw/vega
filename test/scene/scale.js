@@ -172,7 +172,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 1, len = 20;
 
-            for(; i<=len; ++i) ord.push(i);
+            for (; i<=len; ++i) ord.push(i);
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([15, 91]);
@@ -194,7 +194,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 1, len = 23;
 
-            for(; i<=len; ++i) ord.push(i);
+            for (; i<=len; ++i) ord.push(i);
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([10, 100]);
@@ -218,9 +218,9 @@ describe('Scale', function() {
                 ord = [],
                 i = 1, len = 20, v;
 
-            for(; i<=len; ++i) {
+            for (; i<=len; ++i) {
               v = i%2 ? i*2 : i;
-              if(ord.indexOf(v) === -1) ord.push(v);
+              if (ord.indexOf(v) === -1) ord.push(v);
             }
 
             expect(x.domain()).to.have.members(ord);
@@ -242,7 +242,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 1, len = 10;
 
-            for(; i<=len; ++i) ord.push(i);
+            for (; i<=len; ++i) ord.push(i);
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([19, 91]);
@@ -303,7 +303,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 0, len = 20;
 
-            for(; i<len; ++i) ord.push((i+1));
+            for (; i<len; ++i) ord.push((i+1));
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([15, 91]);
@@ -320,7 +320,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 0, len = 20;
 
-            for(; i<len; ++i) ord.push((i+1));
+            for (; i<len; ++i) ord.push((i+1));
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([15, 91]);
@@ -369,9 +369,9 @@ describe('Scale', function() {
                 function(x) { return x.b * 2 })
               .fire();
 
-            for(; i<=len; ++i) {
+            for (; i<=len; ++i) {
               v = i%2 ? i*2 : i;
-              if(ord.indexOf(v) === -1) ord.push(v);
+              if (ord.indexOf(v) === -1) ord.push(v);
             }
 
             expect(x.domain()).to.have.members(ord);
@@ -397,7 +397,7 @@ describe('Scale', function() {
                 ord = [],
                 i = 1, len = 10;
 
-            for(; i<=len; ++i) ord.push(i);
+            for (; i<=len; ++i) ord.push(i);
 
             expect(x.domain()).to.have.members(ord);
             expect(y.domain()).to.eql([19, 91]);
@@ -454,7 +454,7 @@ describe('Scale', function() {
                 num = 4,
                 group, pos, ord;
 
-            for(; i<len; ++i) {
+            for (; i<len; ++i) {
               pos = groups[i].scale('pos');
               ord = [num*i, num*i+1, num*i+2, num*i+3].map(function(v) { return v });
               expect(pos.domain()).to.have.members(ord);
@@ -479,7 +479,7 @@ describe('Scale', function() {
                 num = 4,
                 group, pos, ord;
 
-            for(; i<len; ++i) {
+            for (; i<len; ++i) {
               pos = groups[i].scale('pos');
               ord = [num*i, num*i+1, num*i+2, num*i+3, num*i+4].map(function(v) { return v });
               expect(pos.domain()).to.have.members(ord);
@@ -501,7 +501,7 @@ describe('Scale', function() {
                 num = 4,
                 group, pos, ord;
 
-            for(; i<len; ++i) {
+            for (; i<len; ++i) {
               pos = groups[i].scale('pos');
               ord = [(num*i)*2, (num*i+1)*2, (num*i+2)*2, (num*i+3)*2].map(function(v) { return v });
               expect(pos.domain()).to.have.members(ord);
@@ -522,7 +522,7 @@ describe('Scale', function() {
                 num = 4,
                 group, pos;
 
-            for(; i<len; ++i) {
+            for (; i<len; ++i) {
               pos = groups[i].scale('pos');
               expect(pos.domain()).to.have.members([num*i+1, num*i+3].map(function(v) { return v}));
             }
