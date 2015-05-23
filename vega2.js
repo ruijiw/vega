@@ -4382,15 +4382,6 @@ module.exports = Signal;
 var C = require('../util/constants');
 var REEVAL = [C.DATA, C.FIELDS, C.SCALES, C.SIGNALS];
 
-function copy(a, b) {
-  b.stamp = a ? a.stamp : 0;
-  b.sort  = a ? a.sort  : null;
-  b.facet = a ? a.facet : null;
-  b.trans = a ? a.trans : null;
-  b.request = a ? a.request : null;
-  REEVAL.forEach(function(d) { b[d] = a ? a[d] : {}; });
-}
-
 function create(cs, reflow) {
   var out = {};
   copy(cs, out);
@@ -4402,6 +4393,15 @@ function create(cs, reflow) {
   out.reflow = reflow;
 
   return out;
+}
+
+function copy(a, b) {
+  b.stamp = a ? a.stamp : 0;
+  b.sort  = a ? a.sort  : null;
+  b.facet = a ? a.facet : null;
+  b.trans = a ? a.trans : null;
+  b.request = a ? a.request : null;
+  REEVAL.forEach(function(d) { b[d] = a ? a[d] : {}; });
 }
 
 function resetPrev(x) {
@@ -4438,18 +4438,18 @@ function derive(datum, prev) {
   return ingest(Object.create(datum), prev);
 }
 
-function setPrev(t, k) {
-  if (t._prev === undefined) return;
-  t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
-  t._prev[k] = t[k];
-}
-
 // WARNING: operators should only call this once per timestamp!
 function set(t, k, v) {
   var prev = t[k];
   if (prev === v) return;
   setPrev(t, k);
   t[k] = v;
+}
+
+function setPrev(t, k) {
+  if (t._prev === undefined) return;
+  t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
+  t._prev[k] = t[k];
 }
 
 function hasPrev(t) {
@@ -7149,14 +7149,14 @@ var ORIENT = {
   "right":  "right"
 };
 
-function axes(model, spec, axes, group) {
+function parseAxes(model, spec, axes, group) {
   (spec || []).forEach(function(def, index) {
     axes[index] = axes[index] || axs(model);
-    axis(def, index, axes[index], group);
+    parseAxis(def, index, axes[index], group);
   });
-};
+}
 
-function axis(def, index, axis, group) {
+function parseAxis(def, index, axis, group) {
   // axis scale
   if (def.scale !== undefined) {
     axis.scale(group.scale(def.scale));
@@ -7173,7 +7173,7 @@ function axis(def, index, axis, group) {
   // axis title
   axis.title(def.title || null);
   // axis title offset
-  axis.titleOffset(def.titleOffset != null
+  axis.titleOffset(dl.isValid(def.titleOffset)
     ? def.titleOffset : config.axis.titleOffset);
   // axis values
   axis.tickValues(def.values || null);
@@ -7192,9 +7192,9 @@ function axis(def, index, axis, group) {
     var ts = config.axis.tickSize;
     size = [ts, ts, ts];
   }
-  if (def.tickSizeMajor != null) size[0] = def.tickSizeMajor;
-  if (def.tickSizeMinor != null) size[1] = def.tickSizeMinor;
-  if (def.tickSizeEnd   != null) size[2] = def.tickSizeEnd;
+  if (dl.isValid(def.tickSizeMajor)) size[0] = def.tickSizeMajor;
+  if (dl.isValid(def.tickSizeMinor)) size[1] = def.tickSizeMinor;
+  if (dl.isValid(def.tickSizeEnd)) size[2] = def.tickSizeEnd;
   if (size.length) {
     axis.tickSize.apply(axis, size);
   }
@@ -7219,20 +7219,21 @@ function axis(def, index, axis, group) {
   axis.domainProperties(p && p.axis || {});
 }
 
-module.exports = axes;
+module.exports = parseAxes;
 },{"../scene/axis":79,"../util/config":106,"datalib":20}],44:[function(require,module,exports){
 (function (global){
-var d3 = (typeof window !== "undefined" ? window.d3 : typeof global !== "undefined" ? global.d3 : null);
+var dl = require('datalib'),
+    d3 = (typeof window !== "undefined" ? window.d3 : typeof global !== "undefined" ? global.d3 : null);
 
 module.exports = function parseBg(bg) {
   // return null if input is null or undefined
-  if (bg == null) return null;
+  if (!dl.isValid(bg)) return null;
   // run through d3 rgb to sanity check
   return d3.rgb(bg) + "";  
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],45:[function(require,module,exports){
+},{"datalib":20}],45:[function(require,module,exports){
 var dl = require('datalib'),
     config = require('../util/config'),
     parseTransforms = require('./transforms'),
@@ -7249,7 +7250,7 @@ var parseData = function(model, spec, callback) {
         model.data(d.name).values(dl.read(data, d.format));
       }
       if (--count === 0) callback();
-    }
+    };
   }
 
   // process each data set definition
@@ -7266,8 +7267,8 @@ var parseData = function(model, spec, callback) {
 };
 
 parseData.datasource = function(model, d) {
-  var transform = (d.transform||[]).map(function(t) { return parseTransforms(model, t) }),
-      mod = (d.modify||[]).map(function(m) { return parseModify(model, m, d) }),
+  var transform = (d.transform||[]).map(function(t) { return parseTransforms(model, t); }),
+      mod = (d.modify||[]).map(function(m) { return parseModify(model, m, d); }),
       ds = model.data(d.name, mod.concat(transform));
 
   if (d.values) {
@@ -8233,12 +8234,14 @@ var expr = (function() {
 
   return function(expr) {    
     var value = codegen(parse(expr));
-    value.fn = Function('d', 'e', 'i', 'p', 'sg',
+    /* jshint evil: true */
+    value.fn = new Function('d', 'e', 'i', 'p', 'sg',
       '"use strict"; return (' + value.fn + ');');
     return value;
   };
 })();
 
+/* jshint evil: true */
 expr.eval = function(graph, fn, d, e, i, p, sg) {
   sg = graph.signalValues(dl.array(sg));
   return fn.call(null, d, e, i, p, sg);
@@ -8263,12 +8266,12 @@ module.exports = function parseInteractors(model, spec, defFactory) {
         var def = dl.isObject(data) ? data : JSON.parse(data);
         interactor(i.name, def);
       }
-      if (--count == 0) inject();
-    }
+      if (--count === 0) inject();
+    };
   }
 
   function interactor(name, def) {
-    sg = {}, pd = {};
+    sg = {}; pd = {};
     if (def.signals)    signals.push.apply(signals, nsSignals(name, def.signals));
     if (def.predicates) predicates.push.apply(predicates, nsPredicates(name, def.predicates));
     nsMarks(name, def.marks);
@@ -8284,18 +8287,19 @@ module.exports = function parseInteractors(model, spec, defFactory) {
   }
 
   function injectMarks(marks) {
-    var m, r, i, len;
+    var props = [C.ENTER, C.UPDATE, C.EXIT],
+        m, r, i, len, j, plen, p;
     marks = dl.array(marks);
 
     for (i = 0, len = marks.length; i < len; i++) {
       m = marks[i];
-      if (r = mk[m.type]) {
+      if ((r = mk[m.type])) {
         marks[i] = dl.duplicate(r);
         if (m.from) marks[i].from = m.from;
         if (m.properties) {
-          [C.ENTER, C.UPDATE, C.EXIT].forEach(function(p) {
-            marks[i].properties[p] = dl.extend(r.properties[p], m.properties[p]);
-          });
+          for(j=0, plen=props.length; j<plen; ++j) {
+            marks[i].properties[p=props[j]] = dl.extend(r.properties[p], m.properties[p]);
+          }
         }
       } else if (m.marks) {  // TODO how to override properties of nested marks?
         injectMarks(m.marks);
@@ -8309,7 +8313,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
     } else {
       dl.keys(s).forEach(function(x) { 
         var regex = new RegExp('\\b'+x+'\\b', "g");
-        n = n.replace(regex, s[x]) 
+        n = n.replace(regex, s[x]);
       });
       return n;
     }
@@ -8338,7 +8342,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
         (x || []).forEach(function(o) {
           if (o.signal) o.signal = ns(o.signal, sg);
           else if (o.predicate) nsOperand(o);
-        })
+        });
       });
 
     });  
@@ -8384,19 +8388,19 @@ module.exports = function parseInteractors(model, spec, defFactory) {
 
   if (count === 0) setTimeout(inject, 1);
   return spec;
-}
+};
 },{"../util/config":106,"../util/constants":107,"datalib":20}],49:[function(require,module,exports){
-var lgnd = require('../scene/legend'),
-    config = require('../util/config');
+var dl = require('datalib'),
+    lgnd = require('../scene/legend');
 
-function legends(model, spec, legends, group) {
+function parseLegends(model, spec, legends, group) {
   (spec || []).forEach(function(def, index) {
     legends[index] = legends[index] || lgnd(model);
-    legend(def, index, legends[index], group);
+    parseLegend(def, index, legends[index], group);
   });
-};
+}
 
-function legend(def, index, legend, group) {
+function parseLegend(def, index, legend, group) {
   // legend scales
   legend.size  (def.size   ? group.scale(def.size)   : null);
   legend.shape (def.shape  ? group.scale(def.shape)  : null);
@@ -8407,7 +8411,7 @@ function legend(def, index, legend, group) {
   if (def.orient) legend.orient(def.orient);
 
   // legend offset
-  if (def.offset != null) legend.offset(def.offset);
+  if (dl.isValid(def.offset)) legend.offset(def.offset);
 
   // legend title
   legend.title(def.title || null);
@@ -8427,8 +8431,8 @@ function legend(def, index, legend, group) {
   legend.gradientProperties(p && p.gradient || {});
 }
 
-module.exports = legends;
-},{"../scene/legend":80,"../util/config":106}],50:[function(require,module,exports){
+module.exports = parseLegends;
+},{"../scene/legend":80,"datalib":20}],50:[function(require,module,exports){
 var dl = require('datalib'),
     parseProperties = require('./properties');
 
@@ -8476,8 +8480,9 @@ var dl = require('datalib'),
 
 var filter = function(field, value, src, dest) {
   for (var i = src.length-1; i >= 0; --i) {
-    if (src[i][field] == value)
+    if (src[i][field] === value) {
       dest.push.apply(dest, src.splice(i, 1));
+    }
   }
 };
 
@@ -8511,26 +8516,26 @@ module.exports = function parseModify(model, def, ds) {
     // We have to modify ds._data so that subsequent pulses contain
     // our dynamic data. W/o modifying ds._data, only the output
     // collector will contain dynamic tuples. 
-    if (def.type == C.ADD) {
+    if (def.type === C.ADD) {
       t = tuple.ingest(datum, prev);
       input.add.push(t);
       d._data.push(t);
-    } else if (def.type == C.REMOVE) {
+    } else if (def.type === C.REMOVE) {
       filter(def.field, value, input.add, input.rem);
       filter(def.field, value, input.mod, input.rem);
-      d._data = d._data.filter(function(x) { return x[def.field] !== value });
-    } else if (def.type == C.TOGGLE) {
+      d._data = d._data.filter(function(x) { return x[def.field] !== value; });
+    } else if (def.type === C.TOGGLE) {
       var add = [], rem = [];
       filter(def.field, value, input.rem, add);
       filter(def.field, value, input.add, rem);
       filter(def.field, value, input.mod, rem);
-      if (add.length == 0 && rem.length == 0) add.push(tuple.ingest(datum));
+      if (add.length === 0 && rem.length === 0) add.push(tuple.ingest(datum));
 
       input.add.push.apply(input.add, add);
       d._data.push.apply(d._data, add);
       input.rem.push.apply(input.rem, rem);
-      d._data = d._data.filter(function(x) { return rem.indexOf(x) === -1 });
-    } else if (def.type == C.CLEAR) {
+      d._data = d._data.filter(function(x) { return rem.indexOf(x) === -1; });
+    } else if (def.type === C.CLEAR) {
       input.rem.push.apply(input.rem, input.add);
       input.rem.push.apply(input.rem, input.mod);
       input.add = [];
@@ -8546,17 +8551,17 @@ module.exports = function parseModify(model, def, ds) {
   if (predicate)  node.dependency(C.SIGNALS, predicate.signals);
   
   return node;
-}
+};
 },{"../dataflow/Node":34,"../dataflow/tuple":37,"../util/constants":107,"../util/debug":108,"datalib":20}],53:[function(require,module,exports){
 var dl = require('datalib');
 
 module.exports = function parsePadding(pad) {
-  if (pad == null) return "auto";
+  if (!dl.isValid(pad)) return "auto";
   else if (dl.isString(pad)) return pad==="strict" ? "strict" : "auto";
   else if (dl.isObject(pad)) return pad;
   var p = dl.isNumber(pad) ? pad : 20;
   return {top:p, left:p, right:p, bottom:p};
-}
+};
 },{"datalib":20}],54:[function(require,module,exports){
 var dl = require('datalib');
 
@@ -8581,14 +8586,14 @@ module.exports = function parsePredicate(model, spec) {
         code = "signals["+s.map(dl.str).join("][")+"]";
     signals[s.shift()] = 1;
     return code;
-  };
+  }
 
   function parseOperands(operands) {
     var decl = [], defs = [],
         signals = {}, db = {};
 
     dl.array(operands).forEach(function(o, i) {
-      var signal, name = "o"+i, def = "";
+      var name = "o"+i, def = "";
       
       if (o.value !== undefined) def = dl.str(o.value);
       else if (o.arg)    def = "args["+dl.str(o.arg)+"]";
@@ -8598,10 +8603,10 @@ module.exports = function parsePredicate(model, spec) {
             p = "predicates["+dl.str(o.predicate)+"]";
 
         pred.signals.forEach(function(s) { signals[s] = 1; });
-        pred.data.forEach(function(d) { db[d] = 1 });
+        pred.data.forEach(function(d) { db[d] = 1; });
 
         dl.keys(o.input).forEach(function(k) {
-          var i = o.input[k], signal;
+          var i = o.input[k];
           def += "args["+dl.str(k)+"] = ";
           if (i.signal)   def += parseSignal(i.signal, signals);
           else if (i.arg) def += "args["+dl.str(i.arg)+"]";
@@ -8619,34 +8624,34 @@ module.exports = function parsePredicate(model, spec) {
       code: "var " + decl.join(", ") + ";\n" + defs.join(";\n") + ";\n",
       signals: dl.keys(signals),
       data: dl.keys(db)
-    }
-  };
+    };
+  }
 
   function parseComparator(spec) {
     var ops = parseOperands(spec.operands);
-    if (spec.type == '=') spec.type = '==';
+    if (spec.type === '=') spec.type = '==';
 
     return {
       code: ops.code + "return " + ["o0", "o1"].join(spec.type) + ";",
       signals: ops.signals,
       data: ops.data
     };
-  };
+  }
 
   function parseLogical(spec) {
     var ops = parseOperands(spec.operands),
         o = [], i = 0, len = spec.operands.length;
 
     while(o.push("o"+i++)<len);
-    if (spec.type == 'and') spec.type = '&&';
-    else if (spec.type == 'or') spec.type = '||';
+    if (spec.type === 'and') spec.type = '&&';
+    else if (spec.type === 'or') spec.type = '||';
 
     return {
       code: ops.code + "return " + o.join(spec.type) + ";",
       signals: ops.signals,
       data: ops.data
     };
-  };
+  }
 
   function parseIn(spec) {
     var o = [spec.item], code = "";
@@ -8674,7 +8679,7 @@ module.exports = function parsePredicate(model, spec) {
       signals: ops.signals, 
       data: ops.data.concat(spec.data ? [spec.data] : [])
     };
-  };
+  }
 
   // Populate ops such that ultimate scale/inversion function will be in `scale` var. 
   function parseScale(spec, ops) {
@@ -8696,20 +8701,21 @@ module.exports = function parsePredicate(model, spec) {
       } else {
         code += "this.root().scale(o"+idx+")";
       }
-      code += ")"
+      code += ")";
     }
 
     if (spec.invert === true) {  // Allow spec.invert.arg?
-      code += ".invert"
+      code += ".invert";
     }
 
     return code+";\n";
   }
 
   (spec || []).forEach(function(s) {
+    /* jshint evil: true */
     var parse = types[s.type](s),
-        pred  = Function("args", "db", "signals", "predicates", parse.code);
-    pred.root = function() { return model.scene().items[0] }; // For global scales
+        pred  = new Function("args", "db", "signals", "predicates", parse.code);
+    pred.root = function() { return model.scene().items[0]; }; // For global scales
     pred.isFunction = dl.isFunction;
     pred.signals = parse.signals;
     pred.data = parse.data;
@@ -8717,7 +8723,7 @@ module.exports = function parsePredicate(model, spec) {
   });
 
   return spec;
-}
+};
 },{"datalib":20}],55:[function(require,module,exports){
 (function (global){
 var dl = require('datalib'),
@@ -8739,22 +8745,25 @@ function compile(model, mark, spec) {
         reflow:  false
       };
       
-  code += "var o = trans ? {} : item;\n"
+  code += "var o = trans ? {} : item;\n";
   
   for (i=0, len=names.length; i<len; ++i) {
     ref = spec[name = names[i]];
     code += (i > 0) ? "\n  " : "  ";
     if (ref.rule) {
       ref = rule(model, name, ref.rule);
-      code += "\n  " + ref.code
+      code += "\n  " + ref.code;
     } else {
       ref = valueRef(name, ref);
       code += "this.tpl.set(o, "+dl.str(name)+", "+ref.val+");";
     }
 
+    /* jshint -W083: true */
     vars[name] = true;
     DEPS.forEach(function(p) {
-      if (ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
+      if (dl.isValid(ref[p])) {
+        dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1; });
+      }
     });
     deps.reflow = deps.reflow || ref.reflow;
   }
@@ -8770,7 +8779,7 @@ function compile(model, mark, spec) {
     } else if (vars.width) {
       code += "\n  this.tpl.set(o, 'x', (o.x2 - o.width));";
     } else {
-      code += "\n  this.tpl.set(o, 'x', o.x2);"
+      code += "\n  this.tpl.set(o, 'x', o.x2);";
     }
   }
 
@@ -8793,7 +8802,7 @@ function compile(model, mark, spec) {
     } else if (vars.height) {
       code += "\n  this.tpl.set(o, 'y', (o.y2 - o.height));";
     } else {
-      code += "\n  this.tpl.set(o, 'y', o.y2);"
+      code += "\n  this.tpl.set(o, 'y', o.y2);";
     }
   }
 
@@ -8809,7 +8818,8 @@ function compile(model, mark, spec) {
   code += "\n  if (trans) trans.interpolate(item, o);";
 
   try {
-    var encoder = Function("item", "group", "trans", "db", 
+    /* jshint evil: true */
+    var encoder = new Function("item", "group", "trans", "db", 
       "signals", "predicates", code);
     encoder.tpl  = tuple;
     encoder.util = dl;
@@ -8821,7 +8831,7 @@ function compile(model, mark, spec) {
       data:    dl.keys(deps.data),
       fields:  dl.keys(deps.fields),
       reflow:  deps.reflow
-    }
+    };
   } catch (e) {
     dl.error(e);
     dl.log(code);
@@ -8877,7 +8887,7 @@ function rule(model, name, rules) {
 }
 
 function valueRef(name, ref) {
-  if (ref == null) return null;
+  if (!dl.isValid(ref)) return null;
 
   if (name==="fill" || name==="stroke") {
     if (ref.c) {
@@ -8947,7 +8957,7 @@ function valueRef(name, ref) {
 function colorRef(type, x, y, z) {
   var xx = x ? valueRef("", x) : config.color[type][0],
       yy = y ? valueRef("", y) : config.color[type][1],
-      zz = z ? valueRef("", z) : config.color[type][2]
+      zz = z ? valueRef("", z) : config.color[type][2],
       signals = [], scales = [];
 
   [xx, yy, zz].forEach(function(v) {
@@ -8973,7 +8983,7 @@ function fieldRef(ref) {
   // Resolve nesting/parent lookups
   var l = ref.level,
       nested = (ref.group || ref.parent) && l,
-      scope = nested ? Array(l).join("group.mark.") : "",
+      scope = nested ? new Array(l).join("group.mark.") : "",
       r = fieldRef(ref.datum || ref.group || ref.parent || ref.signal),
       val = r.val,
       fields  = r.fields  || [],
@@ -9049,15 +9059,16 @@ function parseSignals(model, spec) {
   });
 
   return spec;
-};
-
-function exprVal(model, spec) {
-  var e = spec.expr,
-      val = expr.eval(model, e.fn, null, null, null, null, e.signals);
-  return spec.scale ? scale(model, spec, val) : val;
 }
 
-parseSignals.scale = function scale(model, spec, value) {
+function exprVal(model, spec) {
+  /* jshint evil: true */
+  var e = spec.expr,
+      val = expr.eval(model, e.fn, null, null, null, null, e.signals);
+  return spec.scale ? scaleRef(model, spec, val) : val;
+}
+
+function scaleRef(model, spec, value) {
   var def = spec.scale,
       name  = def.name || def.signal || def,
       scope = def.scope ? model.signalRef(def.scope.signal) : null;
@@ -9071,6 +9082,7 @@ parseSignals.scale = function scale(model, spec, value) {
   return def.invert ? scale.invert(value) : scale(value);
 }
 
+parseSignals.scaleRef = scaleRef;
 module.exports = parseSignals;
 },{"../util/constants":107,"./expr":47}],57:[function(require,module,exports){
 var dl = require('datalib'),
@@ -9108,7 +9120,7 @@ module.exports = function parseSpec(spec, callback, viewFactory) {
       data: parseData(model, spec.data, function() { callback(viewFactory(model)); })
     });
   });
-}
+};
 
 },{"../core/Model":29,"../core/View":30,"../parse/background":44,"../parse/data":45,"../parse/interactors":48,"../parse/marks":51,"../parse/padding":53,"../parse/predicates":54,"../parse/signals":56,"datalib":20}],58:[function(require,module,exports){
 (function (global){
@@ -9121,7 +9133,8 @@ var dl = require('datalib'),
     expr = require('./expr'),
     C = require('../util/constants');
 
-var START = "start", MIDDLE = "middle", END = "end";
+var START = "start", MIDDLE = "middle", END = "end",
+    GATE = [START, MIDDLE, END];
 
 module.exports = function(view) {
   var model = view.model(),
@@ -9132,8 +9145,9 @@ module.exports = function(view) {
     var n = new Node(model);
     n.evaluate = function(input) {
       if (!input.signals[selector.signal]) return model.doNotPropagate;
+      /* jshint evil: true */
       var val = expr.eval(model, exp.fn, null, null, null, null, exp.signals);
-      if (spec.scale) val = parseSignals.scale(model, spec, val);
+      if (spec.scale) val = parseSignals.scaleRef(model, spec, val);
       sig.value(val);
       input.signals[sig.name()] = 1;
       input.reflow = true;
@@ -9142,7 +9156,7 @@ module.exports = function(view) {
     n.dependency(C.SIGNALS, selector.signal);
     n.addListener(sig);
     model.signal(selector.signal).addListener(n);
-  };
+  }
 
   function event(sig, selector, exp, spec) {
     var filters = selector.filters || [],
@@ -9160,7 +9174,7 @@ module.exports = function(view) {
 
     nodes[selector.event] = nodes[selector.event] || new Node(model);
     nodes[selector.event].addListener(sig);
-  };
+  }
 
   function orderedStream(sig, selector, exp, spec) {
     var name = sig.name(), 
@@ -9192,16 +9206,16 @@ module.exports = function(view) {
     };
     router.addListener(sig);
 
-    [START, MIDDLE, END].forEach(function(x) {
-      var val = (x == MIDDLE) ? exp : trueFn,
-          sp = (x == MIDDLE) ? spec : {};
+    GATE.forEach(function(x) {
+      var val = (x === MIDDLE) ? exp : trueFn,
+          sp = (x === MIDDLE) ? spec : {};
 
       if (selector[x].event) event(s[x], selector[x], val, sp);
       else if (selector[x].signal) signal(s[x], selector[x], val, sp);
       else if (selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
       s[x].addListener(router);
     });
-  };
+  }
 
   function mergedStream(sig, selector, exp, spec) {
     selector.forEach(function(s) {
@@ -9210,7 +9224,7 @@ module.exports = function(view) {
       else if (s.start)  orderedStream(sig, s, exp, spec);
       else if (s.stream) mergedStream(sig, s.stream, exp, spec);
     });
-  };
+  }
 
   (spec || []).forEach(function(sig) {
     var signal = model.signal(sig.name);
@@ -9246,20 +9260,22 @@ module.exports = function(view) {
 
       for (i = 0; i < handlers.length; i++) {
         h = handlers[i];
+        /* jshint -W083: true */
         filtered = h.filters.some(function(f) {
+          /* jshint evil: true */
           return !expr.eval(model, f.fn, d, evt, item, p, f.signals);
         });
         if (filtered) continue;
-        
+        /* jshint evil: true */
         val = expr.eval(model, h.exp.fn, d, evt, item, p, h.exp.signals); 
-        if (h.spec.scale) val = parseSignals.scale(model, h.spec, val);
+        if (h.spec.scale) val = parseSignals.scaleRef(model, h.spec, val);
         h.signal.value(val);
         cs.signals[h.signal.name()] = 1;
       }
 
       model.propagate(cs, node);
     });
-  })
+  });
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 

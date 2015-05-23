@@ -17,22 +17,25 @@ function compile(model, mark, spec) {
         reflow:  false
       };
       
-  code += "var o = trans ? {} : item;\n"
+  code += "var o = trans ? {} : item;\n";
   
   for (i=0, len=names.length; i<len; ++i) {
     ref = spec[name = names[i]];
     code += (i > 0) ? "\n  " : "  ";
     if (ref.rule) {
       ref = rule(model, name, ref.rule);
-      code += "\n  " + ref.code
+      code += "\n  " + ref.code;
     } else {
       ref = valueRef(name, ref);
       code += "this.tpl.set(o, "+dl.str(name)+", "+ref.val+");";
     }
 
+    /* jshint -W083: true */
     vars[name] = true;
     DEPS.forEach(function(p) {
-      if (ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
+      if (dl.isValid(ref[p])) {
+        dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1; });
+      }
     });
     deps.reflow = deps.reflow || ref.reflow;
   }
@@ -48,7 +51,7 @@ function compile(model, mark, spec) {
     } else if (vars.width) {
       code += "\n  this.tpl.set(o, 'x', (o.x2 - o.width));";
     } else {
-      code += "\n  this.tpl.set(o, 'x', o.x2);"
+      code += "\n  this.tpl.set(o, 'x', o.x2);";
     }
   }
 
@@ -71,7 +74,7 @@ function compile(model, mark, spec) {
     } else if (vars.height) {
       code += "\n  this.tpl.set(o, 'y', (o.y2 - o.height));";
     } else {
-      code += "\n  this.tpl.set(o, 'y', o.y2);"
+      code += "\n  this.tpl.set(o, 'y', o.y2);";
     }
   }
 
@@ -87,7 +90,8 @@ function compile(model, mark, spec) {
   code += "\n  if (trans) trans.interpolate(item, o);";
 
   try {
-    var encoder = Function("item", "group", "trans", "db", 
+    /* jshint evil: true */
+    var encoder = new Function("item", "group", "trans", "db", 
       "signals", "predicates", code);
     encoder.tpl  = tuple;
     encoder.util = dl;
@@ -99,7 +103,7 @@ function compile(model, mark, spec) {
       data:    dl.keys(deps.data),
       fields:  dl.keys(deps.fields),
       reflow:  deps.reflow
-    }
+    };
   } catch (e) {
     dl.error(e);
     dl.log(code);
@@ -155,7 +159,7 @@ function rule(model, name, rules) {
 }
 
 function valueRef(name, ref) {
-  if (ref == null) return null;
+  if (!dl.isValid(ref)) return null;
 
   if (name==="fill" || name==="stroke") {
     if (ref.c) {
@@ -225,7 +229,7 @@ function valueRef(name, ref) {
 function colorRef(type, x, y, z) {
   var xx = x ? valueRef("", x) : config.color[type][0],
       yy = y ? valueRef("", y) : config.color[type][1],
-      zz = z ? valueRef("", z) : config.color[type][2]
+      zz = z ? valueRef("", z) : config.color[type][2],
       signals = [], scales = [];
 
   [xx, yy, zz].forEach(function(v) {
@@ -251,7 +255,7 @@ function fieldRef(ref) {
   // Resolve nesting/parent lookups
   var l = ref.level,
       nested = (ref.group || ref.parent) && l,
-      scope = nested ? Array(l).join("group.mark.") : "",
+      scope = nested ? new Array(l).join("group.mark.") : "",
       r = fieldRef(ref.datum || ref.group || ref.parent || ref.signal),
       val = r.val,
       fields  = r.fields  || [],

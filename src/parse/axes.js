@@ -11,14 +11,14 @@ var ORIENT = {
   "right":  "right"
 };
 
-function axes(model, spec, axes, group) {
+function parseAxes(model, spec, axes, group) {
   (spec || []).forEach(function(def, index) {
     axes[index] = axes[index] || axs(model);
-    axis(def, index, axes[index], group);
+    parseAxis(def, index, axes[index], group);
   });
-};
+}
 
-function axis(def, index, axis, group) {
+function parseAxis(def, index, axis, group) {
   // axis scale
   if (def.scale !== undefined) {
     axis.scale(group.scale(def.scale));
@@ -35,7 +35,7 @@ function axis(def, index, axis, group) {
   // axis title
   axis.title(def.title || null);
   // axis title offset
-  axis.titleOffset(def.titleOffset != null
+  axis.titleOffset(dl.isValid(def.titleOffset)
     ? def.titleOffset : config.axis.titleOffset);
   // axis values
   axis.tickValues(def.values || null);
@@ -54,9 +54,9 @@ function axis(def, index, axis, group) {
     var ts = config.axis.tickSize;
     size = [ts, ts, ts];
   }
-  if (def.tickSizeMajor != null) size[0] = def.tickSizeMajor;
-  if (def.tickSizeMinor != null) size[1] = def.tickSizeMinor;
-  if (def.tickSizeEnd   != null) size[2] = def.tickSizeEnd;
+  if (dl.isValid(def.tickSizeMajor)) size[0] = def.tickSizeMajor;
+  if (dl.isValid(def.tickSizeMinor)) size[1] = def.tickSizeMinor;
+  if (dl.isValid(def.tickSizeEnd)) size[2] = def.tickSizeEnd;
   if (size.length) {
     axis.tickSize.apply(axis, size);
   }
@@ -81,4 +81,4 @@ function axis(def, index, axis, group) {
   axis.domainProperties(p && p.axis || {});
 }
 
-module.exports = axes;
+module.exports = parseAxes;

@@ -9,12 +9,14 @@ var expr = (function() {
 
   return function(expr) {    
     var value = codegen(parse(expr));
-    value.fn = Function('d', 'e', 'i', 'p', 'sg',
+    /* jshint evil: true */
+    value.fn = new Function('d', 'e', 'i', 'p', 'sg',
       '"use strict"; return (' + value.fn + ');');
     return value;
   };
 })();
 
+/* jshint evil: true */
 expr.eval = function(graph, fn, d, e, i, p, sg) {
   sg = graph.signalValues(dl.array(sg));
   return fn.call(null, d, e, i, p, sg);

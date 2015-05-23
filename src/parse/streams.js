@@ -7,7 +7,8 @@ var dl = require('datalib'),
     expr = require('./expr'),
     C = require('../util/constants');
 
-var START = "start", MIDDLE = "middle", END = "end";
+var START = "start", MIDDLE = "middle", END = "end",
+    GATE = [START, MIDDLE, END];
 
 module.exports = function(view) {
   var model = view.model(),
@@ -18,8 +19,9 @@ module.exports = function(view) {
     var n = new Node(model);
     n.evaluate = function(input) {
       if (!input.signals[selector.signal]) return model.doNotPropagate;
+      /* jshint evil: true */
       var val = expr.eval(model, exp.fn, null, null, null, null, exp.signals);
-      if (spec.scale) val = parseSignals.scale(model, spec, val);
+      if (spec.scale) val = parseSignals.scaleRef(model, spec, val);
       sig.value(val);
       input.signals[sig.name()] = 1;
       input.reflow = true;
@@ -28,7 +30,7 @@ module.exports = function(view) {
     n.dependency(C.SIGNALS, selector.signal);
     n.addListener(sig);
     model.signal(selector.signal).addListener(n);
-  };
+  }
 
   function event(sig, selector, exp, spec) {
     var filters = selector.filters || [],
@@ -46,7 +48,7 @@ module.exports = function(view) {
 
     nodes[selector.event] = nodes[selector.event] || new Node(model);
     nodes[selector.event].addListener(sig);
-  };
+  }
 
   function orderedStream(sig, selector, exp, spec) {
     var name = sig.name(), 
@@ -78,16 +80,16 @@ module.exports = function(view) {
     };
     router.addListener(sig);
 
-    [START, MIDDLE, END].forEach(function(x) {
-      var val = (x == MIDDLE) ? exp : trueFn,
-          sp = (x == MIDDLE) ? spec : {};
+    GATE.forEach(function(x) {
+      var val = (x === MIDDLE) ? exp : trueFn,
+          sp = (x === MIDDLE) ? spec : {};
 
       if (selector[x].event) event(s[x], selector[x], val, sp);
       else if (selector[x].signal) signal(s[x], selector[x], val, sp);
       else if (selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
       s[x].addListener(router);
     });
-  };
+  }
 
   function mergedStream(sig, selector, exp, spec) {
     selector.forEach(function(s) {
@@ -96,7 +98,7 @@ module.exports = function(view) {
       else if (s.start)  orderedStream(sig, s, exp, spec);
       else if (s.stream) mergedStream(sig, s.stream, exp, spec);
     });
-  };
+  }
 
   (spec || []).forEach(function(sig) {
     var signal = model.signal(sig.name);
@@ -132,18 +134,20 @@ module.exports = function(view) {
 
       for (i = 0; i < handlers.length; i++) {
         h = handlers[i];
+        /* jshint -W083: true */
         filtered = h.filters.some(function(f) {
+          /* jshint evil: true */
           return !expr.eval(model, f.fn, d, evt, item, p, f.signals);
         });
         if (filtered) continue;
-        
+        /* jshint evil: true */
         val = expr.eval(model, h.exp.fn, d, evt, item, p, h.exp.signals); 
-        if (h.spec.scale) val = parseSignals.scale(model, h.spec, val);
+        if (h.spec.scale) val = parseSignals.scaleRef(model, h.spec, val);
         h.signal.value(val);
         cs.signals[h.signal.name()] = 1;
       }
 
       model.propagate(cs, node);
     });
-  })
+  });
 };

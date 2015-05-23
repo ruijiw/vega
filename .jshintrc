@@ -14,6 +14,9 @@
 
   "laxbreak": true,
 
+  // Redefinition of 'Node' errors
+  // "-W079": true,
+
   "node": true,
   "browser": true,
   "browserify": true

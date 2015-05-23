@@ -15,12 +15,12 @@ module.exports = function parseInteractors(model, spec, defFactory) {
         var def = dl.isObject(data) ? data : JSON.parse(data);
         interactor(i.name, def);
       }
-      if (--count == 0) inject();
-    }
+      if (--count === 0) inject();
+    };
   }
 
   function interactor(name, def) {
-    sg = {}, pd = {};
+    sg = {}; pd = {};
     if (def.signals)    signals.push.apply(signals, nsSignals(name, def.signals));
     if (def.predicates) predicates.push.apply(predicates, nsPredicates(name, def.predicates));
     nsMarks(name, def.marks);
@@ -36,18 +36,19 @@ module.exports = function parseInteractors(model, spec, defFactory) {
   }
 
   function injectMarks(marks) {
-    var m, r, i, len;
+    var props = [C.ENTER, C.UPDATE, C.EXIT],
+        m, r, i, len, j, plen, p;
     marks = dl.array(marks);
 
     for (i = 0, len = marks.length; i < len; i++) {
       m = marks[i];
-      if (r = mk[m.type]) {
+      if ((r = mk[m.type])) {
         marks[i] = dl.duplicate(r);
         if (m.from) marks[i].from = m.from;
         if (m.properties) {
-          [C.ENTER, C.UPDATE, C.EXIT].forEach(function(p) {
-            marks[i].properties[p] = dl.extend(r.properties[p], m.properties[p]);
-          });
+          for(j=0, plen=props.length; j<plen; ++j) {
+            marks[i].properties[p=props[j]] = dl.extend(r.properties[p], m.properties[p]);
+          }
         }
       } else if (m.marks) {  // TODO how to override properties of nested marks?
         injectMarks(m.marks);
@@ -61,7 +62,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
     } else {
       dl.keys(s).forEach(function(x) { 
         var regex = new RegExp('\\b'+x+'\\b', "g");
-        n = n.replace(regex, s[x]) 
+        n = n.replace(regex, s[x]);
       });
       return n;
     }
@@ -90,7 +91,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
         (x || []).forEach(function(o) {
           if (o.signal) o.signal = ns(o.signal, sg);
           else if (o.predicate) nsOperand(o);
-        })
+        });
       });
 
     });  
@@ -136,4 +137,4 @@ module.exports = function parseInteractors(model, spec, defFactory) {
 
   if (count === 0) setTimeout(inject, 1);
   return spec;
-}
+};

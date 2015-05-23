@@ -24,15 +24,16 @@ function parseSignals(model, spec) {
   });
 
   return spec;
-};
-
-function exprVal(model, spec) {
-  var e = spec.expr,
-      val = expr.eval(model, e.fn, null, null, null, null, e.signals);
-  return spec.scale ? scale(model, spec, val) : val;
 }
 
-parseSignals.scale = function scale(model, spec, value) {
+function exprVal(model, spec) {
+  /* jshint evil: true */
+  var e = spec.expr,
+      val = expr.eval(model, e.fn, null, null, null, null, e.signals);
+  return spec.scale ? scaleRef(model, spec, val) : val;
+}
+
+function scaleRef(model, spec, value) {
   var def = spec.scale,
       name  = def.name || def.signal || def,
       scope = def.scope ? model.signalRef(def.scope.signal) : null;
@@ -46,4 +47,5 @@ parseSignals.scale = function scale(model, spec, value) {
   return def.invert ? scale.invert(value) : scale(value);
 }
 
+parseSignals.scaleRef = scaleRef;
 module.exports = parseSignals;

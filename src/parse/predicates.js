@@ -21,14 +21,14 @@ module.exports = function parsePredicate(model, spec) {
         code = "signals["+s.map(dl.str).join("][")+"]";
     signals[s.shift()] = 1;
     return code;
-  };
+  }
 
   function parseOperands(operands) {
     var decl = [], defs = [],
         signals = {}, db = {};
 
     dl.array(operands).forEach(function(o, i) {
-      var signal, name = "o"+i, def = "";
+      var name = "o"+i, def = "";
       
       if (o.value !== undefined) def = dl.str(o.value);
       else if (o.arg)    def = "args["+dl.str(o.arg)+"]";
@@ -38,10 +38,10 @@ module.exports = function parsePredicate(model, spec) {
             p = "predicates["+dl.str(o.predicate)+"]";
 
         pred.signals.forEach(function(s) { signals[s] = 1; });
-        pred.data.forEach(function(d) { db[d] = 1 });
+        pred.data.forEach(function(d) { db[d] = 1; });
 
         dl.keys(o.input).forEach(function(k) {
-          var i = o.input[k], signal;
+          var i = o.input[k];
           def += "args["+dl.str(k)+"] = ";
           if (i.signal)   def += parseSignal(i.signal, signals);
           else if (i.arg) def += "args["+dl.str(i.arg)+"]";
@@ -59,34 +59,34 @@ module.exports = function parsePredicate(model, spec) {
       code: "var " + decl.join(", ") + ";\n" + defs.join(";\n") + ";\n",
       signals: dl.keys(signals),
       data: dl.keys(db)
-    }
-  };
+    };
+  }
 
   function parseComparator(spec) {
     var ops = parseOperands(spec.operands);
-    if (spec.type == '=') spec.type = '==';
+    if (spec.type === '=') spec.type = '==';
 
     return {
       code: ops.code + "return " + ["o0", "o1"].join(spec.type) + ";",
       signals: ops.signals,
       data: ops.data
     };
-  };
+  }
 
   function parseLogical(spec) {
     var ops = parseOperands(spec.operands),
         o = [], i = 0, len = spec.operands.length;
 
     while(o.push("o"+i++)<len);
-    if (spec.type == 'and') spec.type = '&&';
-    else if (spec.type == 'or') spec.type = '||';
+    if (spec.type === 'and') spec.type = '&&';
+    else if (spec.type === 'or') spec.type = '||';
 
     return {
       code: ops.code + "return " + o.join(spec.type) + ";",
       signals: ops.signals,
       data: ops.data
     };
-  };
+  }
 
   function parseIn(spec) {
     var o = [spec.item], code = "";
@@ -114,7 +114,7 @@ module.exports = function parsePredicate(model, spec) {
       signals: ops.signals, 
       data: ops.data.concat(spec.data ? [spec.data] : [])
     };
-  };
+  }
 
   // Populate ops such that ultimate scale/inversion function will be in `scale` var. 
   function parseScale(spec, ops) {
@@ -136,20 +136,21 @@ module.exports = function parsePredicate(model, spec) {
       } else {
         code += "this.root().scale(o"+idx+")";
       }
-      code += ")"
+      code += ")";
     }
 
     if (spec.invert === true) {  // Allow spec.invert.arg?
-      code += ".invert"
+      code += ".invert";
     }
 
     return code+";\n";
   }
 
   (spec || []).forEach(function(s) {
+    /* jshint evil: true */
     var parse = types[s.type](s),
-        pred  = Function("args", "db", "signals", "predicates", parse.code);
-    pred.root = function() { return model.scene().items[0] }; // For global scales
+        pred  = new Function("args", "db", "signals", "predicates", parse.code);
+    pred.root = function() { return model.scene().items[0]; }; // For global scales
     pred.isFunction = dl.isFunction;
     pred.signals = parse.signals;
     pred.data = parse.data;
@@ -157,4 +158,4 @@ module.exports = function parsePredicate(model, spec) {
   });
 
   return spec;
-}
+};

@@ -33,4 +33,4 @@ module.exports = function parseSpec(spec, callback, viewFactory) {
       data: parseData(model, spec.data, function() { callback(viewFactory(model)); })
     });
   });
-}
+};
