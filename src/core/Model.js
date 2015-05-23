@@ -16,7 +16,7 @@ function Model() {
   this._reset = {axes: false, legends: false};
 
   Graph.prototype.init.call(this);
-};
+}
 
 var proto = (Model.prototype = new Graph());
 
@@ -56,10 +56,12 @@ proto.data = function() {
 };
 
 function predicates(name) {
-  var m = this, predicates = {};
+  var preds = {}, i, len, n;
   if (!dl.isArray(name)) return this._predicates[name];
-  name.forEach(function(n) { predicates[n] = m._predicates[n] });
-  return predicates;
+  for(i=0, len=name.length; i<len; ++i) {
+    preds[n=name[i]] = this._predicates[n];
+  }
+  return preds;
 }
 
 proto.predicate = function(name, predicate) {

@@ -10,7 +10,7 @@ var d3 = require('d3'),
     debug = require('../util/debug'),
     changeset = require('../dataflow/changeset');
 
-var View = function(el, width, height, model) {
+var View = function(el, width, height) {
   this._el    = null;
   this._model = null;
   this._width = this.__width = width || 500;
@@ -43,8 +43,7 @@ prototype.model = function(model) {
 
 // Sandboxed streaming data API
 function streaming(src) {
-  var view = this,
-      ds = this._model.data(src),
+  var ds = this._model.data(src),
       listener = ds.pipeline()[0],
       streamer = this._streamer,
       cs  = this._changeset,
@@ -52,7 +51,7 @@ function streaming(src) {
 
   if (dl.keys(cs.signals).length > 0) {
     throw "New signal values are not reflected in the visualization." +
-      " Please call view.update() before updating data values."
+      " Please call view.update() before updating data values.";
   }
 
   // If we have it stashed, don't create a new closure. 
@@ -77,10 +76,10 @@ function streaming(src) {
     return (ds.remove.apply(ds, arguments), api);
   };
 
-  api.values = function() { return ds.values() };    
+  api.values = function() { return ds.values(); };    
 
   return (this._api[src] = api);
-};
+}
 
 prototype.data = function(data) {
   var v = this;
@@ -101,15 +100,18 @@ prototype.signal = function(name, value) {
       streamer = this._streamer,
       setter = name; 
 
-  if (!arguments.length) return m.signalValues();
-  else if (arguments.length == 1 && dl.isString(name)) return m.signalValues(name);
+  if (!arguments.length) {
+    return m.signalValues();
+  } else if (arguments.length === 1 && dl.isString(name)) {
+    return m.signalValues(name);
+  }
 
   if (dl.keys(cs.data).length > 0) {
     throw "New data values are not reflected in the visualization." +
-      " Please call view.update() before updating signal values."
+      " Please call view.update() before updating signal values.";
   }
 
-  if (arguments.length == 2) {
+  if (arguments.length === 2) {
     setter = {};
     setter[name] = value;
   }
@@ -177,12 +179,12 @@ prototype.autopad = function(opt) {
   else this._autopad = 0;
 
   var pad = this._padding,
-      b = this.model().scene().bounds,
+      bnd = this.model().scene().bounds,
       inset = config.autopadInset,
-      l = b.x1 < 0 ? Math.ceil(-b.x1) + inset : 0,
-      t = b.y1 < 0 ? Math.ceil(-b.y1) + inset : 0,
-      r = b.x2 > this._width  ? Math.ceil(+b.x2 - this._width) + inset : 0,
-      b = b.y2 > this._height ? Math.ceil(+b.y2 - this._height) + inset : 0;
+      l = bnd.x1 < 0 ? Math.ceil(-bnd.x1) + inset : 0,
+      t = bnd.y1 < 0 ? Math.ceil(-bnd.y1) + inset : 0,
+      r = bnd.x2 > this._width  ? Math.ceil(+bnd.x2 - this._width) + inset : 0,
+      b = bnd.y2 > this._height ? Math.ceil(+bnd.y2 - this._height) + inset : 0;
   pad = {left:l, top:t, right:r, bottom:b};
 
   if (this._strict) {
@@ -305,16 +307,15 @@ function build() {
 prototype.update = function(opt) {    
   opt = opt || {};
   var v = this,
-      trans = opt.duration
-        ? new Transition(opt.duration, opt.ease)
-        : null;
+      trans = opt.duration ? 
+        new Transition(opt.duration, opt.ease) : null;
 
   var cs = v._changeset;
   if (trans) cs.trans = trans;
   if (opt.props !== undefined) {
     if (dl.keys(cs.data).length > 0) {
       throw "New data values are not reflected in the visualization." +
-        " Please call view.update() before updating a specified property set."
+        " Please call view.update() before updating a specified property set.";
     }
 
     cs.reflow  = true;

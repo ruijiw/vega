@@ -1,8 +1,7 @@
 var dl = require('datalib'),
     canvas = require('../render/canvas/index'),
     svg = require('../render/svg-headless/index'),
-    View = require('./View'),
-    debug = require('../util/debug');
+    View = require('./View');
 
 var HeadlessView = function(width, height, model) {
   View.call(null, width, height, model);
@@ -10,12 +9,12 @@ var HeadlessView = function(width, height, model) {
   this._type = "canvas";
   this._renderers = {canvas: canvas, svg: svg};
   this._canvas = null;
-}
+};
 
 var prototype = (HeadlessView.prototype = new View());
 
 prototype.renderer = function(type) {
-  if(type) this._type = type;
+  if (type) this._type = type;
   return View.prototype.renderer.apply(this, arguments);
 };
 
@@ -36,13 +35,12 @@ prototype.canvasAsync = function(callback) {
   }
 
   // if images loading, poll until ready
-  (r.pendingImages() > 0) ? wait() : callback(this._canvas);
+  if (r.pendingImages() > 0) wait();
+  else callback(this._canvas);
 };
 
 prototype.svg = function() {
-  return (this._type === "svg")
-    ? this._renderer.svg()
-    : null;
+  return (this._type === "svg") ? this._renderer.svg() : null;
 };
 
 prototype.initialize = function() {    
@@ -74,7 +72,7 @@ prototype.initCanvas = function(w, h, pad, bg) {
       canvas = this._canvas = dl.isNode ? new Canvas(tw, th) : document.createElement('canvas'),
       ctx = canvas.getContext("2d");
 
-  if(!dl.isNode) {  // Manually set width/height on DOM elements
+  if (!dl.isNode) {  // Manually set width/height on DOM elements
     canvas.setAttribute("width", tw);
     canvas.setAttribute("height", th);
   }

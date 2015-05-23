@@ -3126,8 +3126,7 @@ module.exports = require('./lib/heap');
 var dl = require('datalib'),
     canvas = require('../render/canvas/index'),
     svg = require('../render/svg-headless/index'),
-    View = require('./View'),
-    debug = require('../util/debug');
+    View = require('./View');
 
 var HeadlessView = function(width, height, model) {
   View.call(null, width, height, model);
@@ -3135,12 +3134,12 @@ var HeadlessView = function(width, height, model) {
   this._type = "canvas";
   this._renderers = {canvas: canvas, svg: svg};
   this._canvas = null;
-}
+};
 
 var prototype = (HeadlessView.prototype = new View());
 
 prototype.renderer = function(type) {
-  if(type) this._type = type;
+  if (type) this._type = type;
   return View.prototype.renderer.apply(this, arguments);
 };
 
@@ -3161,13 +3160,12 @@ prototype.canvasAsync = function(callback) {
   }
 
   // if images loading, poll until ready
-  (r.pendingImages() > 0) ? wait() : callback(this._canvas);
+  if (r.pendingImages() > 0) wait();
+  else callback(this._canvas);
 };
 
 prototype.svg = function() {
-  return (this._type === "svg")
-    ? this._renderer.svg()
-    : null;
+  return (this._type === "svg") ? this._renderer.svg() : null;
 };
 
 prototype.initialize = function() {    
@@ -3199,7 +3197,7 @@ prototype.initCanvas = function(w, h, pad, bg) {
       canvas = this._canvas = dl.isNode ? new Canvas(tw, th) : document.createElement('canvas'),
       ctx = canvas.getContext("2d");
 
-  if(!dl.isNode) {  // Manually set width/height on DOM elements
+  if (!dl.isNode) {  // Manually set width/height on DOM elements
     canvas.setAttribute("width", tw);
     canvas.setAttribute("height", th);
   }
@@ -3225,7 +3223,7 @@ module.exports = HeadlessView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../render/canvas/index":62,"../render/svg-headless/index":66,"../util/debug":108,"./View":30,"datalib":20}],29:[function(require,module,exports){
+},{"../render/canvas/index":62,"../render/svg-headless/index":66,"./View":30,"datalib":20}],29:[function(require,module,exports){
 var dl = require('datalib'),
     Graph = require('../dataflow/Graph'), 
     Node  = require('../dataflow/Node'),
@@ -3244,7 +3242,7 @@ function Model() {
   this._reset = {axes: false, legends: false};
 
   Graph.prototype.init.call(this);
-};
+}
 
 var proto = (Model.prototype = new Graph());
 
@@ -3276,7 +3274,7 @@ proto.node = function() {
 
 proto.data = function() {
   var data = Graph.prototype.data.apply(this, arguments);
-  if(arguments.length > 1) {  // new Datasource
+  if (arguments.length > 1) {  // new Datasource
     this.node().addListener(data.pipeline()[0]);
   }
 
@@ -3284,22 +3282,24 @@ proto.data = function() {
 };
 
 function predicates(name) {
-  var m = this, predicates = {};
-  if(!dl.isArray(name)) return this._predicates[name];
-  name.forEach(function(n) { predicates[n] = m._predicates[n] });
-  return predicates;
+  var preds = {}, i, len, n;
+  if (!dl.isArray(name)) return this._predicates[name];
+  for(i=0, len=name.length; i<len; ++i) {
+    preds[n=name[i]] = this._predicates[n];
+  }
+  return preds;
 }
 
 proto.predicate = function(name, predicate) {
-  if(arguments.length === 1) return predicates.call(this, name);
+  if (arguments.length === 1) return predicates.call(this, name);
   return (this._predicates[name] = predicate);
 };
 
 proto.predicates = function() { return this._predicates; };
 
 proto.scene = function(renderer) {
-  if(!arguments.length) return this._scene;
-  if(this._builder) this.node().removeListener(this._builder.disconnect());
+  if (!arguments.length) return this._scene;
+  if (this._builder) this.node().removeListener(this._builder.disconnect());
   this._builder = new GroupBuilder(this, this._defs.marks, this._scene={});
   this.node().addListener(this._builder.connect());
   var p = this._builder.pipeline();
@@ -3327,7 +3327,7 @@ proto.addListener = function(l) { this.node().addListener(l); };
 proto.removeListener = function(l) { this.node().removeListener(l); };
 
 proto.fire = function(cs) {
-  if(!cs) cs = changeset.create();
+  if (!cs) cs = changeset.create();
   this.propagate(cs, this.node());
 };
 
@@ -3346,7 +3346,7 @@ var d3 = (typeof window !== "undefined" ? window.d3 : typeof global !== "undefin
     debug = require('../util/debug'),
     changeset = require('../dataflow/changeset');
 
-var View = function(el, width, height, model) {
+var View = function(el, width, height) {
   this._el    = null;
   this._model = null;
   this._width = this.__width = width || 500;
@@ -3379,20 +3379,19 @@ prototype.model = function(model) {
 
 // Sandboxed streaming data API
 function streaming(src) {
-  var view = this,
-      ds = this._model.data(src),
+  var ds = this._model.data(src),
       listener = ds.pipeline()[0],
       streamer = this._streamer,
       cs  = this._changeset,
       api = {};
 
-  if(dl.keys(cs.signals).length > 0) {
+  if (dl.keys(cs.signals).length > 0) {
     throw "New signal values are not reflected in the visualization." +
-      " Please call view.update() before updating data values."
+      " Please call view.update() before updating data values.";
   }
 
   // If we have it stashed, don't create a new closure. 
-  if(this._api[src]) return this._api[src];
+  if (this._api[src]) return this._api[src];
 
   api.insert = function(vals) {
     ds.insert(dl.duplicate(vals));  // Don't pollute the environment
@@ -3413,16 +3412,16 @@ function streaming(src) {
     return (ds.remove.apply(ds, arguments), api);
   };
 
-  api.values = function() { return ds.values() };    
+  api.values = function() { return ds.values(); };    
 
   return (this._api[src] = api);
-};
+}
 
 prototype.data = function(data) {
   var v = this;
-  if(!arguments.length) return v._model.dataValues();
-  else if(dl.isString(data)) return streaming.call(v, data);
-  else if(dl.isObject(data)) {
+  if (!arguments.length) return v._model.dataValues();
+  else if (dl.isString(data)) return streaming.call(v, data);
+  else if (dl.isObject(data)) {
     dl.keys(data).forEach(function(k) {
       var api = streaming.call(v, k);
       data[k](api);
@@ -3437,15 +3436,18 @@ prototype.signal = function(name, value) {
       streamer = this._streamer,
       setter = name; 
 
-  if(!arguments.length) return m.signalValues();
-  else if(arguments.length == 1 && dl.isString(name)) return m.signalValues(name);
-
-  if(dl.keys(cs.data).length > 0) {
-    throw "New data values are not reflected in the visualization." +
-      " Please call view.update() before updating signal values."
+  if (!arguments.length) {
+    return m.signalValues();
+  } else if (arguments.length === 1 && dl.isString(name)) {
+    return m.signalValues(name);
   }
 
-  if(arguments.length == 2) {
+  if (dl.keys(cs.data).length > 0) {
+    throw "New data values are not reflected in the visualization." +
+      " Please call view.update() before updating signal values.";
+  }
+
+  if (arguments.length === 2) {
     setter = {};
     setter[name] = value;
   }
@@ -3502,7 +3504,7 @@ prototype.padding = function(pad) {
     }
     if (this._el) {
       this._renderer.resize(this._width, this._height, pad);
-      if(this._handler) this._handler.padding(pad);
+      if (this._handler) this._handler.padding(pad);
     }
   }
   return this;
@@ -3513,12 +3515,12 @@ prototype.autopad = function(opt) {
   else this._autopad = 0;
 
   var pad = this._padding,
-      b = this.model().scene().bounds,
+      bnd = this.model().scene().bounds,
       inset = config.autopadInset,
-      l = b.x1 < 0 ? Math.ceil(-b.x1) + inset : 0,
-      t = b.y1 < 0 ? Math.ceil(-b.y1) + inset : 0,
-      r = b.x2 > this._width  ? Math.ceil(+b.x2 - this._width) + inset : 0,
-      b = b.y2 > this._height ? Math.ceil(+b.y2 - this._height) + inset : 0;
+      l = bnd.x1 < 0 ? Math.ceil(-bnd.x1) + inset : 0,
+      t = bnd.y1 < 0 ? Math.ceil(-bnd.y1) + inset : 0,
+      r = bnd.x2 > this._width  ? Math.ceil(+bnd.x2 - this._width) + inset : 0,
+      b = bnd.y2 > this._height ? Math.ceil(+bnd.y2 - this._height) + inset : 0;
   pad = {left:l, top:t, right:r, bottom:b};
 
   if (this._strict) {
@@ -3568,7 +3570,7 @@ prototype.initialize = function(el) {
 
   if (!arguments.length || el === null) {
     el = this._el ? this._el.parentNode : null;
-    if(!el) return this;  // This View cannot init w/o an
+    if (!el) return this;  // This View cannot init w/o an
   }
   
   // clear pre-existing container
@@ -3618,7 +3620,7 @@ function build() {
     debug(input, ["rendering"]);
 
     var s = v._model.scene();
-    if(input.trans) {
+    if (input.trans) {
       input.trans.start(function(items) { v._renderer.render(s, items); });
     } else {
       v._renderer.render(s);
@@ -3626,9 +3628,9 @@ function build() {
 
     // For all updated datasources, finalize their changesets.
     var d, ds;
-    for(d in input.data) {
+    for (d in input.data) {
       ds = v._model.data(d);
-      if(!ds.revises()) continue;
+      if (!ds.revises()) continue;
       changeset.finalize(ds.last());
     }
 
@@ -3641,16 +3643,15 @@ function build() {
 prototype.update = function(opt) {    
   opt = opt || {};
   var v = this,
-      trans = opt.duration
-        ? new Transition(opt.duration, opt.ease)
-        : null;
+      trans = opt.duration ? 
+        new Transition(opt.duration, opt.ease) : null;
 
   var cs = v._changeset;
-  if(trans) cs.trans = trans;
-  if(opt.props !== undefined) {
-    if(dl.keys(cs.data).length > 0) {
+  if (trans) cs.trans = trans;
+  if (opt.props !== undefined) {
+    if (dl.keys(cs.data).length > 0) {
       throw "New data values are not reflected in the visualization." +
-        " Please call view.update() before updating a specified property set."
+        " Please call view.update() before updating a specified property set.";
     }
 
     cs.reflow  = true;
@@ -3662,10 +3663,10 @@ prototype.update = function(opt) {
   // If specific items are specified, short-circuit dataflow graph.
   // Else-If there are streaming updates, perform a targeted propagation.
   // Otherwise, reevaluate the entire model (datasources + scene).
-  if(opt.items) { 
+  if (opt.items) { 
     Encoder.update(this._model, opt.trans, opt.props, opt.items);
     v._renderNode.evaluate(cs);
-  } else if(v._streamer.listeners().length) {
+  } else if (v._streamer.listeners().length) {
     v._model.propagate(cs, v._streamer);
     v._streamer.disconnect();
   } else {
@@ -3715,8 +3716,8 @@ View.factory = function(model) {
       .background(defs.background)
       .padding(defs.padding);
 
-    if(opt.el || (!opt.el && v instanceof HeadlessView)) v.initialize(opt.el);
-    if(opt.data) v.data(opt.data);
+    if (opt.el || (!opt.el && v instanceof HeadlessView)) v.initialize(opt.el);
+    if (opt.data) v.data(opt.data);
   
     return v;
   };    
@@ -3795,12 +3796,12 @@ function Datasource(graph, name, facet) {
 var proto = Datasource.prototype;
 
 proto.name = function(name) {
-  if(!arguments.length) return this._name;
+  if (!arguments.length) return this._name;
   return (this._name = name, this);
 };
 
 proto.source = function(src) {
-  if(!arguments.length) return this._source;
+  if (!arguments.length) return this._source;
   return (this._source = this._graph.data(src));
 };
 
@@ -3829,7 +3830,7 @@ proto.update = function(where, field, func) {
         next = func(x);
     if (prev !== next) {
       tuple.set(x, field, next);
-      if(ids[x._id] !== 1) {
+      if (ids[x._id] !== 1) {
         mod.push(x);
         ids[x._id] = 1;
       }
@@ -3839,7 +3840,7 @@ proto.update = function(where, field, func) {
 };
 
 proto.values = function(data) {
-  if(!arguments.length)
+  if (!arguments.length)
     return this._collector ? this._collector.data() : this._data;
 
   // Replace backing data
@@ -3848,14 +3849,14 @@ proto.values = function(data) {
   return this;
 };
 
-function set_prev(d) { if(d._prev === undefined) d._prev = C.SENTINEL; }
+function set_prev(d) { if (d._prev === undefined) d._prev = C.SENTINEL; }
 
 proto.revises = function(p) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
 
   // If we've not needed prev in the past, but a new dataflow node needs it now
   // ensure existing tuples have prev set.
-  if(!this._revises && p) {
+  if (!this._revises && p) {
     this._data.forEach(set_prev);
     this._input.add.forEach(set_prev); // New tuples that haven't yet been merged into _data
   }
@@ -3867,16 +3868,16 @@ proto.revises = function(p) {
 proto.last = function() { return this._output; };
 
 proto.fire = function(input) {
-  if(input) this._input = input;
+  if (input) this._input = input;
   this._graph.propagate(this._input, this._pipeline[0]);
   return this;
 };
 
 proto.pipeline = function(pipeline) {
   var ds = this, n, c;
-  if(!arguments.length) return this._pipeline;
+  if (!arguments.length) return this._pipeline;
 
-  if(pipeline.length) {
+  if (pipeline.length) {
     // If we have a pipeline, add a collector to the end to materialize
     // the output.
     ds._collector = new Collector(this._graph);
@@ -3900,17 +3901,17 @@ proto.pipeline = function(pipeline) {
     // Delta might contain fields updated through API
     dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1 });
 
-    if(input.reflow) {
+    if (input.reflow) {
       out.mod = ds._data.slice();
     } else {
       // update data
-      if(delta.rem.length) {
+      if (delta.rem.length) {
         rem = tuple.idMap(delta.rem);
         ds._data = ds._data
           .filter(function(x) { return rem[x._id] !== 1 });
       }
 
-      if(delta.add.length) ds._data = ds._data.concat(delta.add);
+      if (delta.add.length) ds._data = ds._data.concat(delta.add);
 
       // reset change list
       ds._input = changeset.create();
@@ -3936,7 +3937,7 @@ proto.pipeline = function(pipeline) {
     debug(input, ["output", ds._name]);
     var output = changeset.create(input, true);
 
-    if(ds._facet) {
+    if (ds._facet) {
       ds._facet.values = ds.values();
       input.facet = null;
     }
@@ -3981,8 +3982,8 @@ proto.listener = function() {
 };
 
 proto.addListener = function(l) {
-  if(l instanceof Datasource) {
-    if(this._collector) this._collector.addListener(l.listener());
+  if (l instanceof Datasource) {
+    if (this._collector) this._collector.addListener(l.listener());
     else this._pipeline[0].addListener(l.listener());
   } else {
     this._pipeline[this._pipeline.length-1].addListener(l);      
@@ -4028,8 +4029,8 @@ proto.init = function() {
 
 proto.data = function(name, pipeline, facet) {
   var db = this._data;
-  if(!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
-  if(arguments.length === 1) return db[name];
+  if (!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
+  if (arguments.length === 1) return db[name];
   return (db[name] = new Datasource(this, name, facet).pipeline(pipeline));
 };
 
@@ -4044,29 +4045,29 @@ proto.dataValues = function(names) {
 
 function signal(name) {
   var m = this, i, len;
-  if(!dl.isArray(name)) return this._signals[name];
+  if (!dl.isArray(name)) return this._signals[name];
   return name.map(function(n) { m._signals[n]; });
 }
 
 proto.signal = function(name, init) {
   var m = this;
-  if(arguments.length === 1) return signal.call(this, name);
+  if (arguments.length === 1) return signal.call(this, name);
   return (this._signals[name] = new Signal(this, name, init));
 };
 
 proto.signalValues = function(names) {
   var graph = this;
-  if(!arguments.length) names = dl.keys(this._signals);
-  if(!dl.isArray(names)) return this._signals[names].value();
+  if (!arguments.length) names = dl.keys(this._signals);
+  if (!dl.isArray(names)) return this._signals[names].value();
   return names.reduce(function(sg, n) {
     return (sg[n] = graph._signals[n].value(), sg);
   }, {});
 };
 
 proto.signalRef = function(ref) {
-  if(!dl.isArray(ref)) ref = dl.field(ref);
+  if (!dl.isArray(ref)) ref = dl.field(ref);
   var value = this.signal(ref.shift()).value();
-  if(ref.length > 0) {
+  if (ref.length > 0) {
     var fn = Function("s", "return s["+ref.map(dl.str).join("][")+"]");
     value = fn.call(null, value);
   }
@@ -4077,7 +4078,7 @@ proto.signalRef = function(ref) {
 var schedule = function(a, b) {
   // If the nodes are equal, propagate the non-reflow pulse first,
   // so that we can ignore subsequent reflow pulses. 
-  if(a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
+  if (a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
   else return a.rank - b.rank; 
 };
 
@@ -4089,7 +4090,7 @@ proto.propagate = function(pulse, node) {
   // a new inline datasource).
   var pq = new Heap(schedule); 
 
-  if(pulse.stamp) throw "Pulse already has a non-zero stamp"
+  if (pulse.stamp) throw "Pulse already has a non-zero stamp"
 
   pulse.stamp = ++this._stamp;
   pq.push({ node: node, pulse: pulse, rank: node.rank() });
@@ -4098,12 +4099,12 @@ proto.propagate = function(pulse, node) {
     v = pq.pop(), n = v.node, p = v.pulse, r = v.rank, l = n._listeners;
     reflowed = p.reflow && n.last() >= p.stamp;
 
-    if(reflowed) continue; // Don't needlessly reflow ops.
+    if (reflowed) continue; // Don't needlessly reflow ops.
 
     // A node's rank might change during a propagation (e.g. instantiating
     // a group's dataflow branch). Re-queue if it has. T
     // TODO: use pq.replace or pq.poppush?
-    if(r != n.rank()) {
+    if (r != n.rank()) {
       debug(p, ['Rank mismatch', r, n.rank()]);
       pq.push({ node: n, pulse: p, rank: n.rank() });
       continue;
@@ -4125,9 +4126,9 @@ proto.propagate = function(pulse, node) {
 // Dependencies get wired to the nearest collector. 
 function forEachNode(branch, fn) {
   var node, collector, i, len;
-  for(i=0, len=branch.length; i<len; ++i) {
+  for (i=0, len=branch.length; i<len; ++i) {
     node = branch[i];
-    if(node.collector()) collector = node;
+    if (node.collector()) collector = node;
     fn(node, collector, i);
   }
 }
@@ -4139,7 +4140,7 @@ proto.connect = function(branch) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
-    if(data.length > 0) {
+    if (data.length > 0) {
       data.forEach(function(d) { 
         graph.data(d)
           .revises(n.revises())
@@ -4147,11 +4148,11 @@ proto.connect = function(branch) {
       });
     }
 
-    if(signals.length > 0) {
+    if (signals.length > 0) {
       signals.forEach(function(s) { graph.signal(s).addListener(c); });
     }
 
-    if(i > 0) {
+    if (i > 0) {
       branch[i-1].addListener(branch[i]);
     }
   });
@@ -4167,11 +4168,11 @@ proto.disconnect = function(branch) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
-    if(data.length > 0) {
+    if (data.length > 0) {
       data.forEach(function(d) { graph.data(d).removeListener(c); });
     }
 
-    if(signals.length > 0) {
+    if (signals.length > 0) {
       signals.forEach(function(s) { graph.signal(s).removeListener(c) });
     }
 
@@ -4189,7 +4190,7 @@ proto.reevaluate = function(pulse, node) {
 };
 
 proto.evaluate = function(pulse, node) {
-  if(!this.reevaluate(pulse, node)) return pulse;
+  if (!this.reevaluate(pulse, node)) return pulse;
   pulse = node.evaluate(pulse);
   node.last(pulse.stamp);
   return pulse
@@ -4204,7 +4205,7 @@ var dl = require('datalib'),
 var node_id = 1;
 
 function Node(graph) {
-  if(graph) this.init(graph);
+  if (graph) this.init(graph);
   return this;
 }
 
@@ -4244,37 +4245,37 @@ proto.clone = function() {
 proto.rank = function() { return this._rank; };
 
 proto.last = function(stamp) { 
-  if(!arguments.length) return this._stamp;
+  if (!arguments.length) return this._stamp;
   this._stamp = stamp;
   return this;
 };
 
 proto.dependency = function(type, deps) {
   var d = this._deps[type];
-  if(arguments.length === 1) return d;
-  if(deps === null) { // Clear dependencies of a certain type
+  if (arguments.length === 1) return d;
+  if (deps === null) { // Clear dependencies of a certain type
     while(d.length > 0) d.pop();
   } else {
-    if(!dl.isArray(deps) && d.indexOf(deps) < 0) d.push(deps);
+    if (!dl.isArray(deps) && d.indexOf(deps) < 0) d.push(deps);
     else d.push.apply(d, dl.array(deps));
   }
   return this;
 };
 
 proto.router = function(bool) {
-  if(!arguments.length) return this._isRouter;
+  if (!arguments.length) return this._isRouter;
   this._isRouter = !!bool
   return this;
 };
 
 proto.collector = function(bool) {
-  if(!arguments.length) return this._isCollector;
+  if (!arguments.length) return this._isCollector;
   this._isCollector = !!bool;
   return this;
 };
 
 proto.revises = function(bool) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
   this._revises = !!bool;
   return this;
 };
@@ -4284,12 +4285,12 @@ proto.listeners = function() {
 };
 
 proto.addListener = function(l) {
-  if(!(l instanceof Node)) throw "Listener is not a Node";
-  if(this._registered[l._id]) return this;
+  if (!(l instanceof Node)) throw "Listener is not a Node";
+  if (this._registered[l._id]) return this;
 
   this._listeners.push(l);
   this._registered[l._id] = 1;
-  if(this._rank > l._rank) {
+  if (this._rank > l._rank) {
     var q = [l];
     while(q.length) {
       var cur = q.splice(0,1)[0];
@@ -4349,13 +4350,13 @@ var proto = (Signal.prototype = new Node());
 proto.name = function() { return this._name; };
 
 proto.value = function(val) {
-  if(!arguments.length) return this._value;
+  if (!arguments.length) return this._value;
   this._value = val;
   return this;
 };
 
 proto.fire = function(cs) {
-  if(!cs) cs = changeset.create(null, true);
+  if (!cs) cs = changeset.create(null, true);
   cs.signals[this._name] = 1;
   this._graph.propagate(cs, this);
 };
@@ -4374,8 +4375,8 @@ proto.on = function(handler) {
 
 proto.off = function(handler) {
   var sg = this, h = this._handlers;
-  for(var i=h.length; --i>=0;) {
-    if(!handler || h[i].handler === handler) {
+  for (var i=h.length; --i>=0;) {
+    if (!handler || h[i].handler === handler) {
       sg.removeListener(h.splice(i, 1)[0].node);
     }
   }
@@ -4405,8 +4406,8 @@ function reset_prev(x) {
 }
 
 function finalize(cs) {
-  for(i=0, len=cs.add.length; i<len; ++i) reset_prev(cs.add[i]);
-  for(i=0, len=cs.mod.length; i<len; ++i) reset_prev(cs.mod[i]);
+  for (i=0, len=cs.add.length; i<len; ++i) reset_prev(cs.add[i]);
+  for (i=0, len=cs.mod.length; i<len; ++i) reset_prev(cs.mod[i]);
 }
 
 function copy(a, b) {
@@ -4445,13 +4446,13 @@ function derive(datum, prev) {
 // WARNING: operators should only call this once per timestamp!
 function set(t, k, v) {
   var prev = t[k];
-  if(prev === v) return;
+  if (prev === v) return;
   set_prev(t, k);
   t[k] = v;
 }
 
 function set_prev(t, k) {
-  if(t._prev === undefined) return;
+  if (t._prev === undefined) return;
   t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
   t._prev[k] = t[k];
 }
@@ -8291,7 +8292,7 @@ module.exports = function parseInteractors(model, spec, defFactory) {
     var m, r, i, len;
     marks = dl.array(marks);
 
-    for(i = 0, len = marks.length; i < len; i++) {
+    for (i = 0, len = marks.length; i < len; i++) {
       m = marks[i];
       if (r = mk[m.type]) {
         marks[i] = dl.duplicate(r);
@@ -8479,8 +8480,8 @@ var dl = require('datalib'),
     C = require('../util/constants');
 
 var filter = function(field, value, src, dest) {
-  for(var i = src.length-1; i >= 0; --i) {
-    if(src[i][field] == value)
+  for (var i = src.length-1; i >= 0; --i) {
+    if (src[i][field] == value)
       dest.push.apply(dest, src.splice(i, 1));
   }
 };
@@ -8493,7 +8494,7 @@ module.exports = function parseModify(model, def, ds) {
       node = new Node(model);
 
   node.evaluate = function(input) {
-    if(predicate !== null) {
+    if (predicate !== null) {
       var db = {};
       (predicate.data||[]).forEach(function(d) { db[d] = model.data(d).values(); });
 
@@ -8502,7 +8503,7 @@ module.exports = function parseModify(model, def, ds) {
     }
 
     debug(input, [def.type+"ing", reeval]);
-    if(!reeval) return input;
+    if (!reeval) return input;
 
     var datum = {}, 
         value = signal ? model.signalRef(def.signal) : null,
@@ -8515,26 +8516,26 @@ module.exports = function parseModify(model, def, ds) {
     // We have to modify ds._data so that subsequent pulses contain
     // our dynamic data. W/o modifying ds._data, only the output
     // collector will contain dynamic tuples. 
-    if(def.type == C.ADD) {
+    if (def.type == C.ADD) {
       t = tuple.ingest(datum, prev);
       input.add.push(t);
       d._data.push(t);
-    } else if(def.type == C.REMOVE) {
+    } else if (def.type == C.REMOVE) {
       filter(def.field, value, input.add, input.rem);
       filter(def.field, value, input.mod, input.rem);
       d._data = d._data.filter(function(x) { return x[def.field] !== value });
-    } else if(def.type == C.TOGGLE) {
+    } else if (def.type == C.TOGGLE) {
       var add = [], rem = [];
       filter(def.field, value, input.rem, add);
       filter(def.field, value, input.add, rem);
       filter(def.field, value, input.mod, rem);
-      if(add.length == 0 && rem.length == 0) add.push(tuple.ingest(datum));
+      if (add.length == 0 && rem.length == 0) add.push(tuple.ingest(datum));
 
       input.add.push.apply(input.add, add);
       d._data.push.apply(d._data, add);
       input.rem.push.apply(input.rem, rem);
       d._data = d._data.filter(function(x) { return rem.indexOf(x) === -1 });
-    } else if(def.type == C.CLEAR) {
+    } else if (def.type == C.CLEAR) {
       input.rem.push.apply(input.rem, input.add);
       input.rem.push.apply(input.rem, input.mod);
       input.add = [];
@@ -8546,8 +8547,8 @@ module.exports = function parseModify(model, def, ds) {
     return input;
   };
 
-  if(signalName) node.dependency(C.SIGNALS, signalName);
-  if(predicate)  node.dependency(C.SIGNALS, predicate.signals);
+  if (signalName) node.dependency(C.SIGNALS, signalName);
+  if (predicate)  node.dependency(C.SIGNALS, predicate.signals);
   
   return node;
 }
@@ -8594,10 +8595,10 @@ module.exports = function parsePredicate(model, spec) {
     dl.array(operands).forEach(function(o, i) {
       var signal, name = "o"+i, def = "";
       
-      if(o.value !== undefined) def = dl.str(o.value);
-      else if(o.arg)    def = "args["+dl.str(o.arg)+"]";
-      else if(o.signal) def = parseSignal(o.signal, signals);
-      else if(o.predicate) {
+      if (o.value !== undefined) def = dl.str(o.value);
+      else if (o.arg)    def = "args["+dl.str(o.arg)+"]";
+      else if (o.signal) def = parseSignal(o.signal, signals);
+      else if (o.predicate) {
         var pred = model.predicate(o.predicate),
             p = "predicates["+dl.str(o.predicate)+"]";
 
@@ -8607,8 +8608,8 @@ module.exports = function parsePredicate(model, spec) {
         dl.keys(o.input).forEach(function(k) {
           var i = o.input[k], signal;
           def += "args["+dl.str(k)+"] = ";
-          if(i.signal)   def += parseSignal(i.signal, signals);
-          else if(i.arg) def += "args["+dl.str(i.arg)+"]";
+          if (i.signal)   def += parseSignal(i.signal, signals);
+          else if (i.arg) def += "args["+dl.str(i.arg)+"]";
           def+=", ";
         });
 
@@ -8628,7 +8629,7 @@ module.exports = function parsePredicate(model, spec) {
 
   function parseComparator(spec) {
     var ops = parseOperands(spec.operands);
-    if(spec.type == '=') spec.type = '==';
+    if (spec.type == '=') spec.type = '==';
 
     return {
       code: ops.code + "return " + ["o0", "o1"].join(spec.type) + ";",
@@ -8642,8 +8643,8 @@ module.exports = function parsePredicate(model, spec) {
         o = [], i = 0, len = spec.operands.length;
 
     while(o.push("o"+i++)<len);
-    if(spec.type == 'and') spec.type = '&&';
-    else if(spec.type == 'or') spec.type = '||';
+    if (spec.type == 'and') spec.type = '&&';
+    else if (spec.type == 'or') spec.type = '||';
 
     return {
       code: ops.code + "return " + o.join(spec.type) + ";",
@@ -8654,22 +8655,22 @@ module.exports = function parsePredicate(model, spec) {
 
   function parseIn(spec) {
     var o = [spec.item], code = "";
-    if(spec.range) o.push.apply(o, spec.range);
-    if(spec.scale) {
+    if (spec.range) o.push.apply(o, spec.range);
+    if (spec.scale) {
       code = parseScale(spec.scale, o);
     }
 
     var ops = parseOperands(o);
     code = ops.code + code;
 
-    if(spec.data) {
+    if (spec.data) {
       var field = dl.field(spec.field).map(dl.str);
       code += "var where = function(d) { return d["+field.join("][")+"] == o0 };\n";
       code += "return db["+dl.str(spec.data)+"].filter(where).length > 0;";
-    } else if(spec.range) {
+    } else if (spec.range) {
       // TODO: inclusive/exclusive range?
       // TODO: inverting ordinal scales
-      if(spec.scale) code += "o1 = scale(o1);\no2 = scale(o2);\n";
+      if (spec.scale) code += "o1 = scale(o1);\no2 = scale(o2);\n";
       code += "return o1 < o2 ? o1 <= o0 && o0 <= o2 : o2 <= o0 && o0 <= o1";
     }
 
@@ -8685,16 +8686,16 @@ module.exports = function parsePredicate(model, spec) {
     var code = "var scale = ", 
         idx  = ops.length;
 
-    if(dl.isString(spec)) {
+    if (dl.isString(spec)) {
       ops.push({ value: spec });
       code += "this.root().scale(o"+idx+")";
-    } else if(spec.arg) {  // Scale function is being passed as an arg
+    } else if (spec.arg) {  // Scale function is being passed as an arg
       ops.push(spec);
       code += "o"+idx;
-    } else if(spec.name) { // Full scale parameter {name: ..}
+    } else if (spec.name) { // Full scale parameter {name: ..}
       ops.push(dl.isString(spec.name) ? {value: spec.name} : spec.name);
       code += "(this.isFunction(o"+idx+") ? o"+idx+" : ";
-      if(spec.scope) {
+      if (spec.scope) {
         ops.push(spec.scope);
         code += "(o"+(idx+1)+".scale || this.root().scale)(o"+idx+")";
       } else {
@@ -8703,7 +8704,7 @@ module.exports = function parsePredicate(model, spec) {
       code += ")"
     }
 
-    if(spec.invert === true) {  // Allow spec.invert.arg?
+    if (spec.invert === true) {  // Allow spec.invert.arg?
       code += ".invert"
     }
 
@@ -8748,7 +8749,7 @@ function compile(model, mark, spec) {
   for (i=0, len=names.length; i<len; ++i) {
     ref = spec[name = names[i]];
     code += (i > 0) ? "\n  " : "  ";
-    if(ref.rule) {
+    if (ref.rule) {
       ref = rule(model, name, ref.rule);
       code += "\n  " + ref.code
     } else {
@@ -8758,7 +8759,7 @@ function compile(model, mark, spec) {
 
     vars[name] = true;
     DEPS.forEach(function(p) {
-      if(ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
+      if (ref[p] != null) dl.array(ref[p]).forEach(function(k) { deps[p][k] = 1 });
     });
     deps.reflow = deps.reflow || ref.reflow;
   }
@@ -8854,19 +8855,19 @@ function rule(model, name, rules) {
     dl.keys(r.input).forEach(function(k) {
       var ref = valueRef(i, r.input[k]);
       input.push(dl.str(k)+": "+ref.val);
-      if(ref.signals) signals.push.apply(signals, dl.array(ref.signals));
-      if(ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
+      if (ref.signals) signals.push.apply(signals, dl.array(ref.signals));
+      if (ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
     });
 
     ref = valueRef(name, r);
-    if(ref.signals) signals.push.apply(signals, dl.array(ref.signals));
-    if(ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
+    if (ref.signals) signals.push.apply(signals, dl.array(ref.signals));
+    if (ref.scales)  scales.push.apply(scales, dl.array(ref.scales));
 
-    if(predName) {
+    if (predName) {
       signals.push.apply(signals, pred.signals);
       db.push.apply(db, pred.data);
       inputs.push(args+" = {"+input.join(', ')+"}");
-      code += "if("+p+".call("+p+","+args+", db, signals, predicates)) {\n" +
+      code += "if ("+p+".call("+p+","+args+", db, signals, predicates)) {\n" +
         "    this.tpl.set(o, "+dl.str(name)+", "+ref.val+");\n";
       code += rules[i+1] ? "  } else " : "  }";
     } else {
@@ -8914,7 +8915,7 @@ function valueRef(name, ref) {
     signals.push(sgRef.shift());
   }
 
-  if(ref.field !== undefined) {
+  if (ref.field !== undefined) {
     ref.field = dl.isString(ref.field) ? {datum: ref.field} : ref.field;
     fRef  = fieldRef(ref.field);
     val = fRef.val;
@@ -8926,7 +8927,7 @@ function valueRef(name, ref) {
 
     // run through scale function if val specified.
     // if no val, scale function is predicate arg.
-    if(val !== null || ref.band || ref.mult || ref.offset) {
+    if (val !== null || ref.band || ref.mult || ref.offset) {
       val = scale + (ref.band ? ".rangeBand()" : 
         "("+(val !== null ? val : "item.datum.data")+")");
     } else {
@@ -8955,8 +8956,8 @@ function colorRef(type, x, y, z) {
       signals = [], scales = [];
 
   [xx, yy, zz].forEach(function(v) {
-    if(v.signals) signals.push.apply(signals, v.signals);
-    if(v.scales)  scales.push(v.scales);
+    if (v.signals) signals.push.apply(signals, v.signals);
+    if (v.scales)  scales.push(v.scales);
   });
 
   return {
@@ -8970,7 +8971,7 @@ function colorRef(type, x, y, z) {
 // {field: {group: "foo"} }  -> group.foo
 // {field: {parent: "foo"} } -> group.datum.foo
 function fieldRef(ref) {
-  if(dl.isString(ref)) {
+  if (dl.isString(ref)) {
     return {val: dl.field(ref).map(dl.str).join("][")};
   } 
 
@@ -8984,16 +8985,16 @@ function fieldRef(ref) {
       signals = r.signals || [],
       reflow  = r.reflow  || false; // Nested fieldrefs trigger full reeval of Encoder.
 
-  if(ref.datum) {
+  if (ref.datum) {
     val = "item.datum["+val+"]";
     fields.push(ref.datum);
-  } else if(ref.group) {
+  } else if (ref.group) {
     val = scope+"group["+val+"]";
     reflow = true;
-  } else if(ref.parent) {
+  } else if (ref.parent) {
     val = scope+"group.datum["+val+"]";
     reflow = true;
-  } else if(ref.signal) {
+  } else if (ref.signal) {
     val = "signals["+val+"]";
     signals.push(dl.field(ref.signal)[0]);
     reflow = true;
@@ -9009,16 +9010,16 @@ function scaleRef(ref) {
   var scale = null,
       fr = null;
 
-  if(dl.isString(ref)) {
+  if (dl.isString(ref)) {
     scale = dl.str(ref);
-  } else if(ref.name) {
+  } else if (ref.name) {
     scale = dl.isString(ref.name) ? dl.str(ref.name) : (fr = fieldRef(ref.name)).val;
   } else {
     scale = (fr = fieldRef(ref)).val;
   }
 
   scale = "group.scale("+scale+")";
-  if(ref.invert) scale += ".invert";  // TODO: ordinal scales
+  if (ref.invert) scale += ".invert";  // TODO: ordinal scales
 
   return fr ? (fr.val = scale, fr) : {val: scale};
 }
@@ -9035,12 +9036,12 @@ function parseSignals(model, spec) {
   (spec || []).forEach(function(s) {
     var signal = model.signal(s.name, s.init);
 
-    if(s.init && s.init.expr) {
+    if (s.init && s.init.expr) {
       s.init.expr = expr(s.init.expr);
       signal.value(exprVal(model, s.init));
     }
 
-    if(s.expr) {
+    if (s.expr) {
       s.expr = expr(s.expr);
       signal.evaluate = function(input) {
         signal.value(exprVal(model, s));
@@ -9066,12 +9067,12 @@ parseSignals.scale = function scale(model, spec, value) {
       name  = def.name || def.signal || def,
       scope = def.scope ? model.signalRef(def.scope.signal) : null;
 
-  if(!scope || !scope.scale) {
+  if (!scope || !scope.scale) {
     scope = (scope && scope.mark) ? scope.mark.group : model.scene().items[0];
   }
 
   var scale = scope.scale(name);
-  if(!scale) return value;
+  if (!scale) return value;
   return def.invert ? scale.invert(value) : scale(value);
 }
 
@@ -9135,9 +9136,9 @@ module.exports = function(view) {
   function signal(sig, selector, exp, spec) {
     var n = new Node(model);
     n.evaluate = function(input) {
-      if(!input.signals[selector.signal]) return model.doNotPropagate;
+      if (!input.signals[selector.signal]) return model.doNotPropagate;
       var val = expr.eval(model, exp.fn, null, null, null, null, exp.signals);
-      if(spec.scale) val = parseSignals.scale(model, spec, val);
+      if (spec.scale) val = parseSignals.scale(model, spec, val);
       sig.value(val);
       input.signals[sig.name()] = 1;
       input.reflow = true;
@@ -9152,7 +9153,7 @@ module.exports = function(view) {
     var filters = selector.filters || [],
         target = selector.target;
 
-    if(target) filters.push("i."+target.type+"=="+dl.str(target.value));
+    if (target) filters.push("i."+target.type+"=="+dl.str(target.value));
 
     register[selector.event] = register[selector.event] || [];
     register[selector.event].push({
@@ -9177,17 +9178,17 @@ module.exports = function(view) {
 
     var router = new Node(model);
     router.evaluate = function(input) {
-      if(s[START].value() === true && s[END].value() === false) {
+      if (s[START].value() === true && s[END].value() === false) {
         // TODO: Expand selector syntax to allow start/end signals into stream.
         // Until then, prevent old middles entering stream on new start.
-        if(input.signals[name+START]) return model.doNotPropagate;
+        if (input.signals[name+START]) return model.doNotPropagate;
 
         sig.value(s[MIDDLE].value());
         input.signals[name] = 1;
         return input;
       }
 
-      if(s[END].value() === true) {
+      if (s[END].value() === true) {
         s[START].value(false);
         s[END].value(false);
       }
@@ -9200,25 +9201,25 @@ module.exports = function(view) {
       var val = (x == MIDDLE) ? exp : trueFn,
           sp = (x == MIDDLE) ? spec : {};
 
-      if(selector[x].event) event(s[x], selector[x], val, sp);
-      else if(selector[x].signal) signal(s[x], selector[x], val, sp);
-      else if(selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
+      if (selector[x].event) event(s[x], selector[x], val, sp);
+      else if (selector[x].signal) signal(s[x], selector[x], val, sp);
+      else if (selector[x].stream) mergedStream(s[x], selector[x].stream, val, sp);
       s[x].addListener(router);
     });
   };
 
   function mergedStream(sig, selector, exp, spec) {
     selector.forEach(function(s) {
-      if(s.event)       event(sig, s, exp, spec);
-      else if(s.signal) signal(sig, s, exp, spec);
-      else if(s.start)  orderedStream(sig, s, exp, spec);
-      else if(s.stream) mergedStream(sig, s.stream, exp, spec);
+      if (s.event)       event(sig, s, exp, spec);
+      else if (s.signal) signal(sig, s, exp, spec);
+      else if (s.start)  orderedStream(sig, s, exp, spec);
+      else if (s.stream) mergedStream(sig, s.stream, exp, spec);
     });
   };
 
   (spec || []).forEach(function(sig) {
     var signal = model.signal(sig.name);
-    if(sig.expr) return;  // Cannot have an expr and stream definition.
+    if (sig.expr) return;  // Cannot have an expr and stream definition.
 
     (sig.streams || []).forEach(function(stream) {
       var sel = selector.parse(stream.type),
@@ -9248,15 +9249,15 @@ module.exports = function(view) {
       d = item.datum||{};
       var p = {x: m[0] - pad.left, y: m[1] - pad.top};
 
-      for(i = 0; i < handlers.length; i++) {
+      for (i = 0; i < handlers.length; i++) {
         h = handlers[i];
         filtered = h.filters.some(function(f) {
           return !expr.eval(model, f.fn, d, evt, item, p, f.signals);
         });
-        if(filtered) continue;
+        if (filtered) continue;
         
         val = expr.eval(model, h.exp.fn, d, evt, item, p, h.exp.signals); 
-        if(h.spec.scale) val = parseSignals.scale(model, h.spec, val);
+        if (h.spec.scale) val = parseSignals.scale(model, h.spec, val);
         h.signal.value(val);
         cs.signals[h.signal.name()] = 1;
       }
@@ -9276,11 +9277,11 @@ module.exports = function parseTransforms(model, def) {
   
   // We want to rename output fields before setting any other properties,
   // as subsequent properties may require output to be set (e.g. group by).
-  if(def.output) tx.output(def.output);
+  if (def.output) tx.output(def.output);
 
   dl.keys(def).forEach(function(k) {
-    if(k === 'type' || k === 'output') return;
-    if(k === 'transform' && def.type === 'facet') return;
+    if (k === 'type' || k === 'output') return;
+    if (k === 'transform' && def.type === 'facet') return;
     (tx[k]).set(tx, def[k]);
   });
 
@@ -9375,16 +9376,16 @@ prototype.touchmove = prototype.mousemove = function(evt) {
 
   if (p === a) {
     this.fire("mousemove", evt);
-    if(evt.type == "touchmove") this.fire("touchmove", evt);
+    if (evt.type == "touchmove") this.fire("touchmove", evt);
     return;
   } else if (a) {
     this.fire("mouseout", evt);
-    if(evt.type == "touchend") this.fire("touchend", evt);
+    if (evt.type == "touchend") this.fire("touchend", evt);
   }
   this._active = p;
   if (p) {
     this.fire("mouseover", evt);
-    if(evt.type == "touchstart") this.fire("touchstart", evt);
+    if (evt.type == "touchstart") this.fire("touchstart", evt);
   }
 };
 
@@ -12110,11 +12111,11 @@ proto.evaluate = function(input) {
 
   bounds.mark(this._mark, null, !hasLegends);
 
-  if(hasLegends) {
-    for(i=0, ilen=this._mark.items.length; i<ilen; ++i) {
+  if (hasLegends) {
+    for (i=0, ilen=this._mark.items.length; i<ilen; ++i) {
       group = this._mark.items[i];
       group._legendPositions = null;
-      for(j=0, jlen=group.legendItems.length; j<jlen; ++j) {
+      for (j=0, jlen=group.legendItems.length; j<jlen; ++j) {
         legend = group.legendItems[j];
         Encoder.update(this._graph, input.trans, "vg_legendPosition", legend.items);
         bounds.mark(legend, null, true);
@@ -12168,7 +12169,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
   this._parent = parent;
   this._parent_id = parent_id;
 
-  if(def.from && (def.from.mark || def.from.transform || def.from.modify)) {
+  if (def.from && (def.from.mark || def.from.transform || def.from.modify)) {
     inlineDs.call(this);
   }
 
@@ -12178,7 +12179,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
   this._encoder = new Encoder(this._graph, this._mark);
   this._bounder = new Bounder(this._graph, this._mark);
 
-  if(this._ds) { this._encoder.dependency(C.DATA, this._from); }
+  if (this._ds) { this._encoder.dependency(C.DATA, this._from); }
 
   // Since Builders are super nodes, copy over encoder dependencies
   // (bounder has no registered dependencies).
@@ -12190,12 +12191,12 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
 };
 
 proto.revises = function(p) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
 
   // If we've not needed prev in the past, but a new inline ds needs it now
   // ensure existing items have prev set.
-  if(!this._revises && p) {
-    this._items.forEach(function(d) { if(d._prev === undefined) d._prev = C.SENTINEL; });
+  if (!this._revises && p) {
+    this._items.forEach(function(d) { if (d._prev === undefined) d._prev = C.SENTINEL; });
   }
 
   this._revises = this._revises || p;
@@ -12209,7 +12210,7 @@ function inlineDs() {
       geom = from.mark,
       src, name, spec, sibling, output;
 
-  if(geom) {
+  if (geom) {
     name = ["vg", this._parent_id, geom].join("_");
     spec = {
       name: name,
@@ -12231,9 +12232,9 @@ function inlineDs() {
   this._ds = parseData.datasource(this._graph, spec);
   var revises = this._ds.revises();
 
-  if(geom) {
+  if (geom) {
     sibling = this.sibling(geom).revises(revises);
-    if(sibling._isSuper) sibling.addListener(this._ds.listener());
+    if (sibling._isSuper) sibling.addListener(this._ds.listener());
     else sibling._bounder.addListener(this._ds.listener());
   } else {
     // At this point, we have a new datasource but it is empty as
@@ -12264,8 +12265,8 @@ proto.connect = function() {
     builder._parent.scale(s).addListener(builder);
   });
 
-  if(this._parent) {
-    if(this._isSuper) this.addListener(this._parent._collector);
+  if (this._parent) {
+    if (this._isSuper) this.addListener(this._parent._collector);
     else this._bounder.addListener(this._parent._collector);
   }
 
@@ -12274,7 +12275,7 @@ proto.connect = function() {
 
 proto.disconnect = function() {
   var builder = this;
-  if(!this._listeners.length) return this;
+  if (!this._listeners.length) return this;
 
   Node.prototype.disconnect.call(this);
   this._graph.disconnect(this.pipeline());
@@ -12293,7 +12294,7 @@ proto.evaluate = function(input) {
 
   var output, fullUpdate, fcs, data;
 
-  if(this._ds) {
+  if (this._ds) {
     output = changeset.create(input);
 
     // We need to determine if any encoder dependencies have been updated.
@@ -12306,12 +12307,12 @@ proto.evaluate = function(input) {
 
     // If a scale or signal in the update propset has been updated, 
     // send forward all items for reencoding if we do an early return.
-    if(fullUpdate) output.mod = this._mark.items.slice();
+    if (fullUpdate) output.mod = this._mark.items.slice();
 
     fcs = this._ds.last();
-    if(!fcs) {
+    if (!fcs) {
       output.reflow = true
-    } else if(fcs.stamp > this._stamp) {
+    } else if (fcs.stamp > this._stamp) {
       output = joinDatasource.call(this, fcs, this._ds.values(), fullUpdate);
     }
   } else {
@@ -12329,15 +12330,15 @@ function newItem() {
       item = tuple.ingest(new Item(this._mark), prev);
 
   // For the root node's item
-  if(this._def.width)  tuple.set(item, "width",  this._def.width);
-  if(this._def.height) tuple.set(item, "height", this._def.height);
+  if (this._def.width)  tuple.set(item, "width",  this._def.width);
+  if (this._def.height) tuple.set(item, "height", this._def.height);
   return item;
 };
 
 function join(data, keyf, next, output, prev, mod) {
   var i, key, len, item, datum, enter;
 
-  for(i=0, len=data.length; i<len; ++i) {
+  for (i=0, len=data.length; i<len; ++i) {
     datum = data[i];
     item  = keyf ? this._map[key = keyf(datum)] : prev[i];
     enter = item ? false : (item = newItem.call(this), true);
@@ -12346,8 +12347,8 @@ function join(data, keyf, next, output, prev, mod) {
     tuple.set(item, "key", key);
     this._map[key] = item;
     next.push(item);
-    if(enter) output.add.push(item);
-    else if(!mod || (mod && mod[datum._id])) output.mod.push(item);
+    if (enter) output.add.push(item);
+    else if (!mod || (mod && mod[datum._id])) output.mod.push(item);
   }
 }
 
@@ -12364,7 +12365,7 @@ function joinDatasource(input, data, fullUpdate) {
   // Then build the rest of the data values (which won't contain rem).
   // This will preserve the sort order without needing anything extra.
 
-  for(i=0, len=rem.length; i<len; ++i) {
+  for (i=0, len=rem.length; i<len; ++i) {
     item = this._map[key = keyf(rem[i])];
     item.status = C.EXIT;
     next.push(item);
@@ -12433,7 +12434,7 @@ function Encoder(graph, mark) {
 
   this._mark  = mark;
 
-  if(update) {
+  if (update) {
     this.dependency(C.DATA, update.data);
     this.dependency(C.SCALES, update.scales);
     this.dependency(C.SIGNALS, update.signals);
@@ -12459,9 +12460,9 @@ proto.evaluate = function(input) {
       req = input.request,
       i, len, item, prop;
 
-  if(req) {
-    if(prop = props[req]) {
-      for(i=0, len=input.mod.length; i<len; ++i) {
+  if (req) {
+    if (prop = props[req]) {
+      for (i=0, len=input.mod.length; i<len; ++i) {
         item = input.mod[i];
         encode.call(this, prop, item, input.trans, db, sg, preds);
       }
@@ -12471,23 +12472,23 @@ proto.evaluate = function(input) {
   }
 
   // Items marked for removal are at the head of items. Process them first.
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  for (i=0, len=input.rem.length; i<len; ++i) {
     item = input.rem[i];
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
-    if(exit)   encode.call(this, exit,   item, input.trans, db, sg, preds); 
-    if(input.trans && !exit) input.trans.interpolate(item, EMPTY);
-    else if(!input.trans) item.remove();
+    if (update) encode.call(this, update, item, input.trans, db, sg, preds);
+    if (exit)   encode.call(this, exit,   item, input.trans, db, sg, preds); 
+    if (input.trans && !exit) input.trans.interpolate(item, EMPTY);
+    else if (!input.trans) item.remove();
   }
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     item = input.add[i];
-    if(enter)  encode.call(this, enter,  item, input.trans, db, sg, preds);
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
+    if (enter)  encode.call(this, enter,  item, input.trans, db, sg, preds);
+    if (update) encode.call(this, update, item, input.trans, db, sg, preds);
     item.status = C.UPDATE;
   }
 
-  if(update) {
-    for(i=0, len=input.mod.length; i<len; ++i) {
+  if (update) {
+    for (i=0, len=input.mod.length; i<len; ++i) {
       item = input.mod[i];
       encode.call(this, update, item, input.trans, db, sg, preds);
     }
@@ -12616,9 +12617,9 @@ proto.child = function(name, group_id) {
       i = 0, len = children.length,
       child;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     child = children[i];
-    if(child.type == C.MARK && child.builder._def.name == name) break;
+    if (child.type == C.MARK && child.builder._def.name == name) break;
   }
 
   return child.builder;
@@ -12631,11 +12632,11 @@ function recurse(input) {
       hasLegends = dl.array(this._def.legends).length > 0,
       i, len, group, pipeline, def, inline = false;
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     group = input.add[i];
-    if(hasMarks) buildMarks.call(this, input, group);
-    if(hasAxes)  buildAxes.call(this, input, group);
-    if(hasLegends) buildLegends.call(this, input, group);
+    if (hasMarks) buildMarks.call(this, input, group);
+    if (hasAxes)  buildAxes.call(this, input, group);
+    if (hasLegends) buildLegends.call(this, input, group);
   }
 
   // Wire up new children builders in reverse to minimize graph rewrites.
@@ -12655,36 +12656,36 @@ function recurse(input) {
       inline = inline && (pipeline[pipeline.length-1].listeners().length == 1); // Reactive geom
       c.inline = inline;
 
-      if(inline) c.builder.evaluate(input);
+      if (inline) c.builder.evaluate(input);
       else this._recursor.addListener(c.builder);
     }
   }
 
-  for(i=0, len=input.mod.length; i<len; ++i) {
+  for (i=0, len=input.mod.length; i<len; ++i) {
     group = input.mod[i];
     // Remove temporary connection for marks that draw from a source
-    if(hasMarks) {
+    if (hasMarks) {
       builder._children[group._id].forEach(function(c) {
-        if(c.type == C.MARK && !c.inline && builder._graph.data(c.from) !== undefined ) {
+        if (c.type == C.MARK && !c.inline && builder._graph.data(c.from) !== undefined ) {
           builder._recursor.removeListener(c.builder);
         }
       });
     }
 
     // Update axes data defs
-    if(hasAxes) {
+    if (hasAxes) {
       parseAxes(builder._graph, builder._def.axes, group.axes, group);
       group.axes.forEach(function(a, i) { a.def() });
     }
 
     // Update legend data defs
-    if(hasLegends) {
+    if (hasLegends) {
       parseLegends(builder._graph, builder._def.legends, group.legends, group);
       group.legends.forEach(function(l, i) { l.def() });
     }   
   }
 
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  for (i=0, len=input.rem.length; i<len; ++i) {
     group = input.rem[i];
     // For deleted groups, disconnect their children
     builder._children[group._id].forEach(function(c) { 
@@ -12699,11 +12700,11 @@ function recurse(input) {
 
 function scale(name, scale) {
   var group = this;
-  if(arguments.length === 2) return (group._scales[name] = scale, scale);
+  if (arguments.length === 2) return (group._scales[name] = scale, scale);
   while(scale == null) {
     scale = group._scales[name];
     group = group.mark ? group.mark.group : group._parent;
-    if(!group) break;
+    if (!group) break;
   }
   return scale;
 }
@@ -12730,7 +12731,7 @@ function buildMarks(input, group) {
       listeners = [],
       mark, from, inherit, i, len, m, b;
 
-  for(i=0, len=marks.length; i<len; ++i) {
+  for (i=0, len=marks.length; i<len; ++i) {
     mark = marks[i];
     from = mark.from || {};
     inherit = "vg_"+group.datum._id;
@@ -12870,7 +12871,7 @@ proto.evaluate = function(input) {
 proto.dependency = function(type, deps) {
   if (arguments.length == 2) {
     deps = dl.array(deps);
-    for(var i=0, len=deps.length; i<len; ++i) {
+    for (var i=0, len=deps.length; i<len; ++i) {
       this._graph[type == C.DATA ? C.DATA : C.SIGNAL](deps[i])
         .addListener(this._parent);
     }
@@ -13020,15 +13021,15 @@ function aggrType(def, scale) {
 
   // If we're operating over only a single domain, send full tuples
   // through for efficiency (fewer accessor creations/calls)
-  if(refs.length == 1 && dl.array(refs[0].field).length == 1) {
+  if (refs.length == 1 && dl.array(refs[0].field).length == 1) {
     return Aggregate.TYPES.TUPLE;
   }
 
   // With quantitative scales, we only care about min/max.
-  if(!isUniques(scale)) return Aggregate.TYPES.VALUE;
+  if (!isUniques(scale)) return Aggregate.TYPES.VALUE;
 
   // If we don't sort, then we can send values directly to aggrs as well
-  if(!def.sort) return Aggregate.TYPES.VALUE;
+  if (!def.sort) return Aggregate.TYPES.VALUE;
 
   return Aggregate.TYPES.MULTI;
 }
@@ -13042,16 +13043,16 @@ function getCache(which, def, scale, group) {
       fields = getFields(refs[0], group),
       i, rlen, j, flen, ref, field;
 
-  if(scale[ck]) return scale[ck];
+  if (scale[ck]) return scale[ck];
 
   var cache = scale[ck] = new Aggregate(this._graph).type(atype),
       groupby, summarize;
 
-  if(uniques) {
-    if(atype === Aggregate.TYPES.VALUE) {
+  if (uniques) {
+    if (atype === Aggregate.TYPES.VALUE) {
       groupby = [{ name: C.GROUPBY, get: dl.identity }];
       summarize = {"*": C.COUNT};
-    } else if(atype === Aggregate.TYPES.TUPLE) {
+    } else if (atype === Aggregate.TYPES.TUPLE) {
       groupby = [{ name: C.GROUPBY, get: dl.$(fields[0]) }];
       summarize = sort ? [{
         name: C.VALUE,
@@ -13090,7 +13091,7 @@ function dataRef(which, def, scale, group) {
       uniques = isUniques(scale),
       i, rlen, j, flen, ref, fields, field;
 
-  for(i=0, rlen=refs.length; i<rlen; ++i) {
+  for (i=0, rlen=refs.length; i<rlen; ++i) {
     ref = refs[i];
     from = ref.data || "vg_"+group.datum._id;
     data = graph.data(from)
@@ -13100,12 +13101,12 @@ function dataRef(which, def, scale, group) {
     if (data.stamp <= this._stamp) continue;
 
     fields = getFields(ref, group);
-    for(j=0, flen=fields.length; j<flen; ++j) {
+    for (j=0, flen=fields.length; j<flen; ++j) {
       field = fields[j];
 
-      if(atype === Aggregate.TYPES.VALUE) {
+      if (atype === Aggregate.TYPES.VALUE) {
         cache.accessors(null, field);
-      } else if(atype === Aggregate.TYPES.MULTI) {
+      } else if (atype === Aggregate.TYPES.MULTI) {
         cache.accessors(field, ref.sort || sort.field);
       } // Else (Tuple-case) is handled by the aggregator accessors by default
 
@@ -13407,7 +13408,7 @@ function axs(model) {
   }
 
   axis.def = function() {
-    if(!axisDef.type) axis_def(scale);
+    if (!axisDef.type) axis_def(scale);
 
     var fmt = buildTickFormat();
     var ticks = buildTicks(fmt);
@@ -14488,7 +14489,7 @@ var TYPES = Aggregate.TYPES = {
 proto.summarize = {
   set: function(transform, summarize) {
     var i, len, f, fields, name, ops, signals = {};
-    if(!dl.isArray(fields = summarize)) { // Object syntax from dl
+    if (!dl.isArray(fields = summarize)) { // Object syntax from dl
       fields = [];
       for (name in summarize) {
         ops = dl.array(summarize[name]);
@@ -14496,10 +14497,10 @@ proto.summarize = {
       }
     }
 
-    for(i=0, len=fields.length; i<len; ++i) {
+    for (i=0, len=fields.length; i<len; ++i) {
       f = fields[i];
-      if(f.name.signal) signals[f.name.signal] = 1;
-      dl.array(f.ops).forEach(function(o){ if(o.signal) signals[o.signal] = 1 });
+      if (f.name.signal) signals[f.name.signal] = 1;
+      dl.array(f.ops).forEach(function(o){ if (o.signal) signals[o.signal] = 1 });
     }
 
     transform._fieldsDef = fields;
@@ -14521,9 +14522,9 @@ proto.accessors = function(groupby, value) {
 
 function standardize(x) {
   var acc = this._acc;
-  if(this._type === TYPES.TUPLE) {
+  if (this._type === TYPES.TUPLE) {
     return x;
-  } else if(this._type === TYPES.VALUE) {
+  } else if (this._type === TYPES.VALUE) {
     return acc.value(x);
   } else {
     return this._cache[x._id] || (this._cache[x._id] = {
@@ -14535,14 +14536,14 @@ function standardize(x) {
 }
 
 proto.aggr = function() {
-  if(this._aggr) return this._aggr;
+  if (this._aggr) return this._aggr;
 
   var graph = this._graph,
       groupby = this.groupby.get(graph).fields;
 
   var fields = this._fieldsDef.map(function(field) {
     var f  = dl.duplicate(field);
-    if(field.get) f.get = field.get;
+    if (field.get) f.get = field.get;
 
     f.name = f.name.signal ? graph.signalRef(f.name.signal) : f.name;
     f.ops  = f.ops.signal ? graph.signalRef(f.ops.signal) : dl.array(f.ops).map(function(o) {
@@ -14557,7 +14558,7 @@ proto.aggr = function() {
     .stream(true)
     .summarize(fields);
 
-  if(this._type !== TYPES.VALUE) aggr.key("_id");
+  if (this._type !== TYPES.VALUE) aggr.key("_id");
   return aggr;
 };
 
@@ -14576,7 +14577,7 @@ proto.transform = function(input, reset) {
   debug(input, ["aggregate"]);
 
   var output = changeset.create(input);
-  if(reset) this._reset(input, output);
+  if (reset) this._reset(input, output);
 
   var t = this,
       tpl  = this._type === TYPES.TUPLE, // reduce calls to standardize
@@ -14587,9 +14588,9 @@ proto.transform = function(input, reset) {
   });
 
   input.mod.forEach(function(x) {
-    if(reset) {
+    if (reset) {
       aggr._add(tpl ? x : standardize.call(t, x));  // Signal change triggered reflow
-    } else if(tuple.has_prev(x)) {
+    } else if (tuple.has_prev(x)) {
       var prev = spoof_prev.call(t, x);
       aggr._mod(tpl ? x : standardize.call(t, x), 
         tpl ? prev : standardize.call(t, prev));
@@ -14720,11 +14721,11 @@ function add(output, left, wdata, diag, x) {
       prev  = x._prev !== undefined ? null : undefined, 
       t, y, id;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     y = data[i];
     id = left ? x._id+"_"+y._id : y._id+"_"+x._id;
-    if(this._ids[id]) continue;
-    if(x._id == y._id && !diag) continue;
+    if (this._ids[id]) continue;
+    if (x._id == y._id && !diag) continue;
 
     t = tuple.ingest({}, prev);
     t[this._output.left]  = left ? x : y;
@@ -14740,7 +14741,7 @@ function mod(output, left, x) {
   var cross = this,
       c = this._cache[x._id];
 
-  if(this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
+  if (this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
     c.c = c.c.filter(function(y) {
       var t = y[cross._output[left ? "right" : "left"]];
       return cross._cache[t._id] !== null;
@@ -14758,7 +14759,7 @@ function rem(output, x) {
 }
 
 function upFields(input, output) {
-  if(input.add.length || input.rem.length) {
+  if (input.add.length || input.rem.length) {
     output.fields[this._output.left]  = 1; 
     output.fields[this._output.right] = 1;
   }
@@ -14782,7 +14783,7 @@ proto.transform = function(input) {
   input.rem.forEach(r);
   input.add.forEach(add.bind(this, output, true, wdata, diag));
 
-  if(!selfCross && woutput.stamp > this._lastWith) {
+  if (!selfCross && woutput.stamp > this._lastWith) {
     woutput.rem.forEach(r);
     woutput.add.forEach(add.bind(this, output, false, data, diag));
     woutput.mod.forEach(mod.bind(this, output, false));
@@ -14841,7 +14842,7 @@ var Aggregator = dl.groupby();
 var proto = (Facetor.prototype = Object.create(Aggregator));
 
 proto.facet = function(f) {
-  if(!arguments.length) return this._facet;
+  if (!arguments.length) return this._facet;
   return (this._facet = f, this);
 };
 
@@ -14864,7 +14865,7 @@ proto._newcell = function(x) {
       tuple = cell.tuple,
       graph, pipeline;
 
-  if(this._facet !== null) {
+  if (this._facet !== null) {
     graph = facet._graph;
     pipeline = facet.pipeline.get(graph, facet);
     cell.ds  = graph.data("vg_"+tuple._id, pipeline, tuple);
@@ -14877,14 +14878,14 @@ proto._newcell = function(x) {
 
 proto._newtuple = function(x) {
   var t = Aggregator._newtuple.call(this, x);
-  if(this._facet !== null) {
+  if (this._facet !== null) {
     tuple.set(t, "key", this._cellkey(x));
   }
   return t;
 };
 
 proto.clear = function() {
-  if(this._facet !== null) for (var k in this._cells) {
+  if (this._facet !== null) for (var k in this._cells) {
     this._cells[k].delete(this._facet);
   }
   return Aggregator.clear.call(this);
@@ -14893,7 +14894,7 @@ proto.clear = function() {
 proto._add = function(x) {
   var cell = this._cell(x);
   Aggregator._add.call(this, x);
-  if(this._facet !== null) cell.ds._input.add.push(x);
+  if (this._facet !== null) cell.ds._input.add.push(x);
 };
 
 proto._mod = function(x, prev) {
@@ -14901,8 +14902,8 @@ proto._mod = function(x, prev) {
       cell1 = this._cell(x);
 
   Aggregator._mod.call(this, x, prev);
-  if(this._facet !== null) {  // Propagate tuples
-    if(cell0 === cell1) {
+  if (this._facet !== null) {  // Propagate tuples
+    if (cell0 === cell1) {
       cell0.ds._input.mod.push(x);
     } else {
       cell0.ds._input.rem.push(x);
@@ -14914,7 +14915,7 @@ proto._mod = function(x, prev) {
 proto._rem = function(x) {
   var cell = this._cell(x);
   Aggregator._rem.call(this, x);
-  if(this._facet !== null) cell.ds._input.rem.push(x);  
+  if (this._facet !== null) cell.ds._input.rem.push(x);  
 };
 
 proto.changes = function(input, output) {
@@ -14940,10 +14941,10 @@ proto.changes = function(input, output) {
       if (flag === C.MOD_CELL) {
         output.rem.push(cell.tuple);
       }
-      if(this._facet !== null) cell.delete(this._facet);
+      if (this._facet !== null) cell.delete(this._facet);
       delete this._cells[k];
     } else {
-      if(this._facet !== null) {
+      if (this._facet !== null) {
         // propagate sort, signals, fields, etc.
         changeset.copy(input, cell.ds._input);
       }
@@ -15042,7 +15043,7 @@ function Fold(graph) {
 var proto = (Fold.prototype = new Transform());
 
 function rst(input, output) { 
-  for(var id in this._cache) output.rem.push.apply(output.rem, this._cache[id]);
+  for (var id in this._cache) output.rem.push.apply(output.rem, this._cache[id]);
   this._cache = {};
 };
 
@@ -15056,9 +15057,9 @@ function fn(data, fields, accessors, out, stamp) {
       j, flen = fields.length,
       d, t;
 
-  for(; i<dlen; ++i) {
+  for (; i<dlen; ++i) {
     d = data[i];
-    for(j=0; j<flen; ++j) {
+    for (j=0; j<flen; ++j) {
       t = get_tuple.call(this, d, j, flen);  
       tuple.set(t, this._output.key, fields[j]);
       tuple.set(t, this._output.value, accessors[j](d));
@@ -15075,7 +15076,7 @@ proto.transform = function(input, reset) {
       fields = on.fields, accessors = on.accessors,
       output = changeset.create(input);
 
-  if(reset) rst.call(this, input, output);
+  if (reset) rst.call(this, input, output);
 
   fn.call(this, input.add, fields, accessors, output.add, input.stamp);
   fn.call(this, input.mod, fields, accessors, reset ? output.add : output.mod, input.stamp);
@@ -15085,7 +15086,7 @@ proto.transform = function(input, reset) {
   });
 
   // If we're only propagating values, don't mark key/value as updated.
-  if(input.add.length || input.rem.length || 
+  if (input.add.length || input.rem.length || 
     fields.some(function(f) { return !!input.fields[f]; }))
       output.fields[this._output.key] = 1, output.fields[this._output.value] = 1;
   return output;
@@ -15544,7 +15545,7 @@ proto.get = function(graph) {
     return this._get(); // TODO: support signal as dataTypes
   }
 
-  for(s in this._signals) {
+  for (s in this._signals) {
     idx  = this._signals[s];
     val  = graph.signalRef(s);
 
@@ -15685,7 +15686,7 @@ var proto = (Sort.prototype = new Transform());
 proto.transform = function(input) {
   debug(input, ["sorting"]);
 
-  if(input.add.length || input.mod.length || input.rem.length) {
+  if (input.add.length || input.mod.length || input.rem.length) {
     input.sort = dl.comparator(this.by.get(this._graph).fields);
   }
 
@@ -15793,7 +15794,7 @@ var Node = require('../dataflow/Node'),
     C = require('../util/constants');
 
 function Transform(graph) {
-  if(graph) Node.prototype.init.call(this, graph);
+  if (graph) Node.prototype.init.call(this, graph);
   return this;
 }
 
@@ -15813,8 +15814,8 @@ proto.clone = function() {
   var n = Node.prototype.clone.call(this);
   n.transform = this.transform;
   n._parameters = this._parameters;
-  for(var k in this) { 
-    if(n[k]) continue;
+  for (var k in this) { 
+    if (n[k]) continue;
     n[k] = this[k]; 
   }
   return n;
@@ -15959,32 +15960,32 @@ proto.transform = function(input) {
 
   debug(input, ["zipping", w.name]);
 
-  if(withKey.field) {
-    if(woutput && woutput.stamp > this._lastJoin) {
+  if (withKey.field) {
+    if (woutput && woutput.stamp > this._lastJoin) {
       woutput.rem.forEach(function(x) {
         var m = map(withKey.accessor(x));
-        if(m[0]) m[0].forEach(function(d) { d[as] = dflt });
+        if (m[0]) m[0].forEach(function(d) { d[as] = dflt });
         m[1] = null;
       });
 
       woutput.add.forEach(function(x) { 
         var m = map(withKey.accessor(x));
-        if(m[0]) m[0].forEach(function(d) { d[as] = x });
+        if (m[0]) m[0].forEach(function(d) { d[as] = x });
         m[1] = x;
       });
       
       // Only process woutput.mod tuples if the join key has changed.
       // Other field updates will auto-propagate via prototype.
-      if(woutput.fields[withKey.field]) {
+      if (woutput.fields[withKey.field]) {
         woutput.mod.forEach(function(x) {
           var prev;
-          if(!x._prev || (prev = withKey.accessor(x._prev)) === undefined) return;
+          if (!x._prev || (prev = withKey.accessor(x._prev)) === undefined) return;
           var prevm = map(prev);
-          if(prevm[0]) prevm[0].forEach(function(d) { d[as] = dflt });
+          if (prevm[0]) prevm[0].forEach(function(d) { d[as] = dflt });
           prevm[1] = null;
 
           var m = map(withKey.accessor(x));
-          if(m[0]) m[0].forEach(function(d) { d[as] = x });
+          if (m[0]) m[0].forEach(function(d) { d[as] = x });
           m[1] = x;
         });
       }
@@ -16003,10 +16004,10 @@ proto.transform = function(input) {
       (rem[k]=rem[k]||{})[x._id] = 1;
     });
 
-    if(input.fields[key.field]) {
+    if (input.fields[key.field]) {
       input.mod.forEach(function(x) {
         var prev;
-        if(!x._prev || (prev = key.accessor(x._prev)) === undefined) return;
+        if (!x._prev || (prev = key.accessor(x._prev)) === undefined) return;
 
         var m = map(key.accessor(x));
         x[as] = m[1] || dflt;
@@ -16017,13 +16018,13 @@ proto.transform = function(input) {
 
     dl.keys(rem).forEach(function(k) { 
       var m = map(k);
-      if(!m[0]) return;
+      if (!m[0]) return;
       m[0] = m[0].filter(function(x) { return rem[k][x._id] !== 1 });
     });
   } else {
     // We only need to run a non-key-join again if we've got any add/rem
     // on input or woutput
-    if(input.add.length == 0 && input.rem.length == 0 && 
+    if (input.add.length == 0 && input.rem.length == 0 && 
         woutput.add.length == 0 && woutput.rem.length == 0) return input;
 
     // If we don't have a key-join, then we need to materialize both
@@ -16033,7 +16034,7 @@ proto.transform = function(input) {
     var data = this._collector.data(), 
         wlen = wdata.length, i;
 
-    for(i = 0; i < data.length; i++) { data[i][as] = wdata[i%wlen]; }
+    for (i = 0; i < data.length; i++) { data[i][as] = wdata[i%wlen]; }
   }
 
   input.fields[as] = 1;
@@ -16712,7 +16713,7 @@ module.exports = function(input, args) {
   var log = Function.prototype.bind.call(console.log, console);
   args.unshift(input.stamp||-1);
   args.unshift(Date.now() - ts);
-  if(input.add) args.push(input.add.length, input.mod.length, input.rem.length, !!input.reflow);
+  if (input.add) args.push(input.add.length, input.mod.length, input.rem.length, !!input.reflow);
   log.apply(console, args);
   ts = Date.now();
 };
