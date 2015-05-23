@@ -140,7 +140,7 @@ proto.transform = function(input, reset) {
   input.mod.forEach(function(x) {
     if (reset) {
       aggr._add(tpl ? x : standardize.call(t, x));  // Signal change triggered reflow
-    } else if (tuple.has_prev(x)) {
+    } else if (tuple.hasPrev(x)) {
       var prev = spoof_prev.call(t, x);
       aggr._mod(tpl ? x : standardize.call(t, x), 
         tpl ? prev : standardize.call(t, prev));
@@ -148,7 +148,7 @@ proto.transform = function(input, reset) {
   });
 
   input.rem.forEach(function(x) {
-    var y = tuple.has_prev(x) ? spoof_prev.call(t, x) : x;
+    var y = tuple.hasPrev(x) ? spoof_prev.call(t, x) : x;
     aggr._rem(tpl ? y : standardize.call(t, y));
     t._cache[x._id] = t._prev[x._id] = null;
   });

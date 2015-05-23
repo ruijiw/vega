@@ -2,7 +2,6 @@ var dl = require('datalib'),
     Heap = require('heap'),
     Datasource = require('./Datasource'),
     Signal = require('./Signal'),
-    changeset = require('./changeset'),
     debug = require('../util/debug'),
     C = require('../util/constants');
 
@@ -23,7 +22,11 @@ proto.init = function() {
 
 proto.data = function(name, pipeline, facet) {
   var db = this._data;
-  if (!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
+  if (!arguments.length) {
+    return dl.keys(db).reduce(function(map, d) { 
+      return (map[d] = db[d], map); 
+    }, {});
+  }
   if (arguments.length === 1) return db[name];
   return (db[name] = new Datasource(this, name, facet).pipeline(pipeline));
 };
@@ -37,15 +40,8 @@ proto.dataValues = function(names) {
   }, {});
 };
 
-function signal(name) {
-  var m = this, i, len;
-  if (!dl.isArray(name)) return this._signals[name];
-  return name.map(function(n) { m._signals[n]; });
-}
-
 proto.signal = function(name, init) {
-  var m = this;
-  if (arguments.length === 1) return signal.call(this, name);
+  if (arguments.length === 1) return this._signals[name];
   return (this._signals[name] = new Signal(this, name, init));
 };
 
@@ -62,7 +58,8 @@ proto.signalRef = function(ref) {
   if (!dl.isArray(ref)) ref = dl.field(ref);
   var value = this.signal(ref.shift()).value();
   if (ref.length > 0) {
-    var fn = Function("s", "return s["+ref.map(dl.str).join("][")+"]");
+    /* jshint evil: true */
+    var fn = new Function("s", "return s["+ref.map(dl.str).join("][")+"]");
     value = fn.call(null, value);
   }
 
@@ -72,7 +69,7 @@ proto.signalRef = function(ref) {
 var schedule = function(a, b) {
   // If the nodes are equal, propagate the non-reflow pulse first,
   // so that we can ignore subsequent reflow pulses. 
-  if (a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
+  if (a.rank === b.rank) return a.pulse.reflow ? 1 : -1;
   else return a.rank - b.rank; 
 };
 
@@ -84,13 +81,13 @@ proto.propagate = function(pulse, node) {
   // a new inline datasource).
   var pq = new Heap(schedule); 
 
-  if (pulse.stamp) throw "Pulse already has a non-zero stamp"
+  if (pulse.stamp) throw "Pulse already has a non-zero stamp";
 
   pulse.stamp = ++this._stamp;
   pq.push({ node: node, pulse: pulse, rank: node.rank() });
 
   while (pq.size() > 0) {
-    v = pq.pop(), n = v.node, p = v.pulse, r = v.rank, l = n._listeners;
+    v = pq.pop(); n = v.node; p = v.pulse; r = v.rank; l = n._listeners;
     reflowed = p.reflow && n.last() >= p.stamp;
 
     if (reflowed) continue; // Don't needlessly reflow ops.
@@ -98,7 +95,7 @@ proto.propagate = function(pulse, node) {
     // A node's rank might change during a propagation (e.g. instantiating
     // a group's dataflow branch). Re-queue if it has. T
     // TODO: use pq.replace or pq.poppush?
-    if (r != n.rank()) {
+    if (r !== n.rank()) {
       debug(p, ['Rank mismatch', r, n.rank()]);
       pq.push({ node: n, pulse: p, rank: n.rank() });
       continue;
@@ -158,7 +155,7 @@ proto.disconnect = function(branch) {
   debug({}, ['disconnecting']);
   var graph = this;
 
-  forEachNode(branch, function(n, c, i) {
+  forEachNode(branch, function(n, c) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
@@ -167,7 +164,7 @@ proto.disconnect = function(branch) {
     }
 
     if (signals.length > 0) {
-      signals.forEach(function(s) { graph.signal(s).removeListener(c) });
+      signals.forEach(function(s) { graph.signal(s).removeListener(c); });
     }
 
     n.disconnect();  
@@ -187,7 +184,7 @@ proto.evaluate = function(pulse, node) {
   if (!this.reevaluate(pulse, node)) return pulse;
   pulse = node.evaluate(pulse);
   node.last(pulse.stamp);
-  return pulse
+  return pulse;
 };
 
 module.exports = Graph;

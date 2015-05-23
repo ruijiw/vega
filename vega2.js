@@ -3730,8 +3730,7 @@ module.exports = View;
 },{"../dataflow/Node":34,"../dataflow/changeset":36,"../parse/streams":58,"../render/canvas/index":62,"../render/svg/index":70,"../scene/Encoder":74,"../scene/Transition":78,"../util/config":106,"../util/debug":108,"./HeadlessView":28,"datalib":20}],31:[function(require,module,exports){
 var Node = require('./Node'),
     changeset = require('./changeset'),
-    debug = require('../util/debug'),
-    C = require('../util/constants');
+    debug = require('../util/debug');
 
 function Collector(graph) {
   Node.prototype.init.call(this, graph);
@@ -3742,7 +3741,7 @@ function Collector(graph) {
 
 var proto = (Collector.prototype = new Node());
 
-proto.data = function() { return this._data; }
+proto.data = function() { return this._data; };
 
 proto.evaluate = function(input) {
   debug(input, ["collecting"]);
@@ -3770,7 +3769,7 @@ proto.evaluate = function(input) {
 };
 
 module.exports = Collector;
-},{"../util/constants":107,"../util/debug":108,"./Node":34,"./changeset":36}],32:[function(require,module,exports){
+},{"../util/debug":108,"./Node":34,"./changeset":36}],32:[function(require,module,exports){
 var dl = require('datalib'),
     changeset = require('./changeset'), 
     tuple = require('./tuple'), 
@@ -3791,7 +3790,7 @@ function Datasource(graph, name, facet) {
   this._pipeline  = null; // Pipeline of transformations.
   this._collector = null; // Collector to materialize output of pipeline
   this._revises = false; // Does any pipeline operator need to track prev?
-};
+}
 
 var proto = Datasource.prototype;
 
@@ -3821,8 +3820,7 @@ proto.remove = function(where) {
 
 proto.update = function(where, field, func) {
   var mod = this._input.mod,
-      ids = tuple.idMap(mod),
-      prev = this._revises ? null : undefined; 
+      ids = tuple.idMap(mod); 
 
   this._input.fields[field] = 1;
   this._data.filter(where).forEach(function(x) {
@@ -3849,7 +3847,9 @@ proto.values = function(data) {
   return this;
 };
 
-function set_prev(d) { if (d._prev === undefined) d._prev = C.SENTINEL; }
+function setPrev(d) { 
+  if (d._prev === undefined) d._prev = C.SENTINEL; 
+}
 
 proto.revises = function(p) {
   if (!arguments.length) return this._revises;
@@ -3857,8 +3857,8 @@ proto.revises = function(p) {
   // If we've not needed prev in the past, but a new dataflow node needs it now
   // ensure existing tuples have prev set.
   if (!this._revises && p) {
-    this._data.forEach(set_prev);
-    this._input.add.forEach(set_prev); // New tuples that haven't yet been merged into _data
+    this._data.forEach(setPrev);
+    this._input.add.forEach(setPrev); // New tuples that haven't yet been merged into _data
   }
 
   this._revises = this._revises || p;
@@ -3874,7 +3874,7 @@ proto.fire = function(input) {
 };
 
 proto.pipeline = function(pipeline) {
-  var ds = this, n, c;
+  var ds = this;
   if (!arguments.length) return this._pipeline;
 
   if (pipeline.length) {
@@ -3899,7 +3899,7 @@ proto.pipeline = function(pipeline) {
         rem;
 
     // Delta might contain fields updated through API
-    dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1 });
+    dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1; });
 
     if (input.reflow) {
       out.mod = ds._data.slice();
@@ -3908,7 +3908,7 @@ proto.pipeline = function(pipeline) {
       if (delta.rem.length) {
         rem = tuple.idMap(delta.rem);
         ds._data = ds._data
-          .filter(function(x) { return rem[x._id] !== 1 });
+          .filter(function(x) { return rem[x._id] !== 1; });
       }
 
       if (delta.add.length) ds._data = ds._data.concat(delta.add);
@@ -4008,7 +4008,6 @@ var dl = require('datalib'),
     Heap = require('heap'),
     Datasource = require('./Datasource'),
     Signal = require('./Signal'),
-    changeset = require('./changeset'),
     debug = require('../util/debug'),
     C = require('../util/constants');
 
@@ -4029,7 +4028,11 @@ proto.init = function() {
 
 proto.data = function(name, pipeline, facet) {
   var db = this._data;
-  if (!arguments.length) return dl.keys(db).map(function(d) { return db[d]; });
+  if (!arguments.length) {
+    return dl.keys(db).reduce(function(map, d) { 
+      return (map[d] = db[d], map); 
+    }, {});
+  }
   if (arguments.length === 1) return db[name];
   return (db[name] = new Datasource(this, name, facet).pipeline(pipeline));
 };
@@ -4043,15 +4046,8 @@ proto.dataValues = function(names) {
   }, {});
 };
 
-function signal(name) {
-  var m = this, i, len;
-  if (!dl.isArray(name)) return this._signals[name];
-  return name.map(function(n) { m._signals[n]; });
-}
-
 proto.signal = function(name, init) {
-  var m = this;
-  if (arguments.length === 1) return signal.call(this, name);
+  if (arguments.length === 1) return this._signals[name];
   return (this._signals[name] = new Signal(this, name, init));
 };
 
@@ -4068,7 +4064,8 @@ proto.signalRef = function(ref) {
   if (!dl.isArray(ref)) ref = dl.field(ref);
   var value = this.signal(ref.shift()).value();
   if (ref.length > 0) {
-    var fn = Function("s", "return s["+ref.map(dl.str).join("][")+"]");
+    /* jshint evil: true */
+    var fn = new Function("s", "return s["+ref.map(dl.str).join("][")+"]");
     value = fn.call(null, value);
   }
 
@@ -4078,7 +4075,7 @@ proto.signalRef = function(ref) {
 var schedule = function(a, b) {
   // If the nodes are equal, propagate the non-reflow pulse first,
   // so that we can ignore subsequent reflow pulses. 
-  if (a.rank == b.rank) return a.pulse.reflow ? 1 : -1;
+  if (a.rank === b.rank) return a.pulse.reflow ? 1 : -1;
   else return a.rank - b.rank; 
 };
 
@@ -4090,13 +4087,13 @@ proto.propagate = function(pulse, node) {
   // a new inline datasource).
   var pq = new Heap(schedule); 
 
-  if (pulse.stamp) throw "Pulse already has a non-zero stamp"
+  if (pulse.stamp) throw "Pulse already has a non-zero stamp";
 
   pulse.stamp = ++this._stamp;
   pq.push({ node: node, pulse: pulse, rank: node.rank() });
 
   while (pq.size() > 0) {
-    v = pq.pop(), n = v.node, p = v.pulse, r = v.rank, l = n._listeners;
+    v = pq.pop(); n = v.node; p = v.pulse; r = v.rank; l = n._listeners;
     reflowed = p.reflow && n.last() >= p.stamp;
 
     if (reflowed) continue; // Don't needlessly reflow ops.
@@ -4104,7 +4101,7 @@ proto.propagate = function(pulse, node) {
     // A node's rank might change during a propagation (e.g. instantiating
     // a group's dataflow branch). Re-queue if it has. T
     // TODO: use pq.replace or pq.poppush?
-    if (r != n.rank()) {
+    if (r !== n.rank()) {
       debug(p, ['Rank mismatch', r, n.rank()]);
       pq.push({ node: n, pulse: p, rank: n.rank() });
       continue;
@@ -4164,7 +4161,7 @@ proto.disconnect = function(branch) {
   debug({}, ['disconnecting']);
   var graph = this;
 
-  forEachNode(branch, function(n, c, i) {
+  forEachNode(branch, function(n, c) {
     var data = n.dependency(C.DATA),
         signals = n.dependency(C.SIGNALS);
 
@@ -4173,7 +4170,7 @@ proto.disconnect = function(branch) {
     }
 
     if (signals.length > 0) {
-      signals.forEach(function(s) { graph.signal(s).removeListener(c) });
+      signals.forEach(function(s) { graph.signal(s).removeListener(c); });
     }
 
     n.disconnect();  
@@ -4193,16 +4190,16 @@ proto.evaluate = function(pulse, node) {
   if (!this.reevaluate(pulse, node)) return pulse;
   pulse = node.evaluate(pulse);
   node.last(pulse.stamp);
-  return pulse
+  return pulse;
 };
 
 module.exports = Graph;
-},{"../util/constants":107,"../util/debug":108,"./Datasource":32,"./Signal":35,"./changeset":36,"datalib":20,"heap":26}],34:[function(require,module,exports){
+},{"../util/constants":107,"../util/debug":108,"./Datasource":32,"./Signal":35,"datalib":20,"heap":26}],34:[function(require,module,exports){
 var dl = require('datalib'),
     C = require('../util/constants'),
     REEVAL = [C.DATA, C.FIELDS, C.SCALES, C.SIGNALS];
 
-var node_id = 1;
+var nodeID = 1;
 
 function Node(graph) {
   if (graph) this.init(graph);
@@ -4212,7 +4209,7 @@ function Node(graph) {
 var proto = Node.prototype;
 
 proto.init = function(graph) {
-  this._id = node_id++;
+  this._id = nodeID++;
   this._graph = graph;
   this._rank = ++graph._rank; // For topologial sort
   this._stamp = 0;  // Last stamp seen
@@ -4264,7 +4261,7 @@ proto.dependency = function(type, deps) {
 
 proto.router = function(bool) {
   if (!arguments.length) return this._isRouter;
-  this._isRouter = !!bool
+  this._isRouter = !!bool;
   return this;
 };
 
@@ -4320,16 +4317,13 @@ proto.disconnect = function() {
   this._registered = {};
 };
 
-proto.evaluate = function(pulse) { return pulse; }
+proto.evaluate = function(pulse) { return pulse; };
 
 proto.reevaluate = function(pulse) {
-  var node = this, reeval = false;
+  var deps = this._deps, reeval = false;
   return REEVAL.some(function(prop) {
-    reeval = reeval || node._deps[prop].some(function(k) { return !!pulse[prop][k] });
-    return reeval;
+    return reeval || deps[prop].some(function(k) { return !!pulse[prop][k]; });
   });
-
-  return this;
 };
 
 module.exports = Node;
@@ -4343,7 +4337,7 @@ function Signal(graph, name, init) {
   this._value = init;
   this._handlers = [];
   return this;
-};
+}
 
 var proto = (Signal.prototype = new Node());
 
@@ -4388,6 +4382,15 @@ module.exports = Signal;
 var C = require('../util/constants');
 var REEVAL = [C.DATA, C.FIELDS, C.SCALES, C.SIGNALS];
 
+function copy(a, b) {
+  b.stamp = a ? a.stamp : 0;
+  b.sort  = a ? a.sort  : null;
+  b.facet = a ? a.facet : null;
+  b.trans = a ? a.trans : null;
+  b.request = a ? a.request : null;
+  REEVAL.forEach(function(d) { b[d] = a ? a[d] : {}; });
+}
+
 function create(cs, reflow) {
   var out = {};
   copy(cs, out);
@@ -4401,22 +4404,14 @@ function create(cs, reflow) {
   return out;
 }
 
-function reset_prev(x) {
+function resetPrev(x) {
   x._prev = (x._prev === undefined) ? undefined : C.SENTINEL;
 }
 
 function finalize(cs) {
-  for (i=0, len=cs.add.length; i<len; ++i) reset_prev(cs.add[i]);
-  for (i=0, len=cs.mod.length; i<len; ++i) reset_prev(cs.mod[i]);
-}
-
-function copy(a, b) {
-  b.stamp = a ? a.stamp : 0;
-  b.sort  = a ? a.sort  : null;
-  b.facet = a ? a.facet : null;
-  b.trans = a ? a.trans : null;
-  b.request = a ? a.request : null;
-  REEVAL.forEach(function(d) { b[d] = a ? a[d] : {}; });
+  var i, len;
+  for (i=0, len=cs.add.length; i<len; ++i) resetPrev(cs.add[i]);
+  for (i=0, len=cs.mod.length; i<len; ++i) resetPrev(cs.mod[i]);
 }
 
 module.exports = {
@@ -4427,14 +4422,14 @@ module.exports = {
 },{"../util/constants":107}],37:[function(require,module,exports){
 var dl = require('datalib'),
     C = require('../util/constants'),
-    tuple_id = 1;
+    tupleID = 1;
 
 // Object.create is expensive. So, when ingesting, trust that the
 // datum is an object that has been appropriately sandboxed from 
 // the outside environment. 
 function ingest(datum, prev) {
   datum = dl.isObject(datum) ? datum : {data: datum};
-  datum._id = tuple_id++;
+  datum._id = tupleID++;
   datum._prev = (prev !== undefined) ? (prev || C.SENTINEL) : undefined;
   return datum;
 }
@@ -4443,38 +4438,38 @@ function derive(datum, prev) {
   return ingest(Object.create(datum), prev);
 }
 
-// WARNING: operators should only call this once per timestamp!
-function set(t, k, v) {
-  var prev = t[k];
-  if (prev === v) return;
-  set_prev(t, k);
-  t[k] = v;
-}
-
-function set_prev(t, k) {
+function setPrev(t, k) {
   if (t._prev === undefined) return;
   t._prev = (t._prev === C.SENTINEL) ? {} : t._prev;
   t._prev[k] = t[k];
 }
 
-function has_prev(t) {
+// WARNING: operators should only call this once per timestamp!
+function set(t, k, v) {
+  var prev = t[k];
+  if (prev === v) return;
+  setPrev(t, k);
+  t[k] = v;
+}
+
+function hasPrev(t) {
   return t._prev && t._prev !== C.SENTINEL;
 }
 
-function reset() { tuple_id = 1; }
+function reset() { tupleID = 1; }
 
 function idMap(a) {
   return a.reduce(function(m,x) {
     return (m[x._id] = 1, m);
   }, {});
-};
+}
 
 module.exports = {
   ingest: ingest,
   derive: derive,
   set:    set,
-  set_prev: set_prev,
-  has_prev: has_prev,
+  setPrev: setPrev,
+  hasPrev: hasPrev,
   reset:  reset,
   idMap:  idMap
 };
@@ -14590,7 +14585,7 @@ proto.transform = function(input, reset) {
   input.mod.forEach(function(x) {
     if (reset) {
       aggr._add(tpl ? x : standardize.call(t, x));  // Signal change triggered reflow
-    } else if (tuple.has_prev(x)) {
+    } else if (tuple.hasPrev(x)) {
       var prev = spoof_prev.call(t, x);
       aggr._mod(tpl ? x : standardize.call(t, x), 
         tpl ? prev : standardize.call(t, prev));
@@ -14598,7 +14593,7 @@ proto.transform = function(input, reset) {
   });
 
   input.rem.forEach(function(x) {
-    var y = tuple.has_prev(x) ? spoof_prev.call(t, x) : x;
+    var y = tuple.hasPrev(x) ? spoof_prev.call(t, x) : x;
     aggr._rem(tpl ? y : standardize.call(t, y));
     t._cache[x._id] = t._prev[x._id] = null;
   });

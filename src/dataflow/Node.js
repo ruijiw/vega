@@ -2,7 +2,7 @@ var dl = require('datalib'),
     C = require('../util/constants'),
     REEVAL = [C.DATA, C.FIELDS, C.SCALES, C.SIGNALS];
 
-var node_id = 1;
+var nodeID = 1;
 
 function Node(graph) {
   if (graph) this.init(graph);
@@ -12,7 +12,7 @@ function Node(graph) {
 var proto = Node.prototype;
 
 proto.init = function(graph) {
-  this._id = node_id++;
+  this._id = nodeID++;
   this._graph = graph;
   this._rank = ++graph._rank; // For topologial sort
   this._stamp = 0;  // Last stamp seen
@@ -64,7 +64,7 @@ proto.dependency = function(type, deps) {
 
 proto.router = function(bool) {
   if (!arguments.length) return this._isRouter;
-  this._isRouter = !!bool
+  this._isRouter = !!bool;
   return this;
 };
 
@@ -120,16 +120,13 @@ proto.disconnect = function() {
   this._registered = {};
 };
 
-proto.evaluate = function(pulse) { return pulse; }
+proto.evaluate = function(pulse) { return pulse; };
 
 proto.reevaluate = function(pulse) {
-  var node = this, reeval = false;
+  var deps = this._deps, reeval = false;
   return REEVAL.some(function(prop) {
-    reeval = reeval || node._deps[prop].some(function(k) { return !!pulse[prop][k] });
-    return reeval;
+    return reeval || deps[prop].some(function(k) { return !!pulse[prop][k]; });
   });
-
-  return this;
 };
 
 module.exports = Node;

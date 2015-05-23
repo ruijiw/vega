@@ -18,7 +18,7 @@ function Datasource(graph, name, facet) {
   this._pipeline  = null; // Pipeline of transformations.
   this._collector = null; // Collector to materialize output of pipeline
   this._revises = false; // Does any pipeline operator need to track prev?
-};
+}
 
 var proto = Datasource.prototype;
 
@@ -48,8 +48,7 @@ proto.remove = function(where) {
 
 proto.update = function(where, field, func) {
   var mod = this._input.mod,
-      ids = tuple.idMap(mod),
-      prev = this._revises ? null : undefined; 
+      ids = tuple.idMap(mod); 
 
   this._input.fields[field] = 1;
   this._data.filter(where).forEach(function(x) {
@@ -76,7 +75,9 @@ proto.values = function(data) {
   return this;
 };
 
-function set_prev(d) { if (d._prev === undefined) d._prev = C.SENTINEL; }
+function setPrev(d) { 
+  if (d._prev === undefined) d._prev = C.SENTINEL; 
+}
 
 proto.revises = function(p) {
   if (!arguments.length) return this._revises;
@@ -84,8 +85,8 @@ proto.revises = function(p) {
   // If we've not needed prev in the past, but a new dataflow node needs it now
   // ensure existing tuples have prev set.
   if (!this._revises && p) {
-    this._data.forEach(set_prev);
-    this._input.add.forEach(set_prev); // New tuples that haven't yet been merged into _data
+    this._data.forEach(setPrev);
+    this._input.add.forEach(setPrev); // New tuples that haven't yet been merged into _data
   }
 
   this._revises = this._revises || p;
@@ -101,7 +102,7 @@ proto.fire = function(input) {
 };
 
 proto.pipeline = function(pipeline) {
-  var ds = this, n, c;
+  var ds = this;
   if (!arguments.length) return this._pipeline;
 
   if (pipeline.length) {
@@ -126,7 +127,7 @@ proto.pipeline = function(pipeline) {
         rem;
 
     // Delta might contain fields updated through API
-    dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1 });
+    dl.keys(delta.fields).forEach(function(f) { out.fields[f] = 1; });
 
     if (input.reflow) {
       out.mod = ds._data.slice();
@@ -135,7 +136,7 @@ proto.pipeline = function(pipeline) {
       if (delta.rem.length) {
         rem = tuple.idMap(delta.rem);
         ds._data = ds._data
-          .filter(function(x) { return rem[x._id] !== 1 });
+          .filter(function(x) { return rem[x._id] !== 1; });
       }
 
       if (delta.add.length) ds._data = ds._data.concat(delta.add);

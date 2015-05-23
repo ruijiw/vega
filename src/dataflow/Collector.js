@@ -1,7 +1,6 @@
 var Node = require('./Node'),
     changeset = require('./changeset'),
-    debug = require('../util/debug'),
-    C = require('../util/constants');
+    debug = require('../util/debug');
 
 function Collector(graph) {
   Node.prototype.init.call(this, graph);
@@ -12,7 +11,7 @@ function Collector(graph) {
 
 var proto = (Collector.prototype = new Node());
 
-proto.data = function() { return this._data; }
+proto.data = function() { return this._data; };
 
 proto.evaluate = function(input) {
   debug(input, ["collecting"]);

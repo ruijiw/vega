@@ -7,7 +7,7 @@ function Signal(graph, name, init) {
   this._value = init;
   this._handlers = [];
   return this;
-};
+}
 
 var proto = (Signal.prototype = new Node());
 
