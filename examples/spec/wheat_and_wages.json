@@ -1,0 +1,127 @@
+{
+  "width": 700,
+  "height": 200,
+  "padding": {"top": 10, "left": 30, "bottom": 30, "right":30},
+  "data": [
+    {
+      "name": "wheat",
+      "url": "data/wheat.json"
+    }, 
+    {
+      "name": "monarchs",
+      "url": "data/monarchs.json"
+    },
+    {
+      "name": "monarchs2",
+      "source": "monarchs",
+      "transform": [
+      {
+        "type": "formula", 
+        "field": "offset", 
+         "expr": "((!datum.commonwealth && datum.index % 2) ? -1: 1) * 5 + 95"
+      }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "range": "width", "zero": false,
+      "domain": [1565, 1825]
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "range": "height",
+      "domain": {"data": "wheat", "field": "wheat"}
+    },
+    {
+      "name": "c",
+      "type": "ordinal",
+      "range": ["black", "white"],
+      "domain": {"data": "monarchs2", "field" : "commonwealth"}
+    }
+  ],
+  "axes": [
+    {"type": "x", "scale": "x", "ticks": 5},
+    {"type": "y", "scale": "y", "orient":"right", "ticks": 5}
+  ],
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "wheat"},
+      "properties": {
+        "enter": {
+          "x": {"scale": "x", "field": "year"},
+          "width": {"value": 13},
+          "y": {"scale": "y", "field": "wheat"},
+          "y2": {"scale": "y", "value": 0}
+        },
+        "update": {
+          "fill": {"value": "steelblue"}
+        }
+      }
+    },
+    {
+      "type": "area",
+      "from": {"data": "wheat"},
+      "properties": {
+        "enter": {
+          "interpolate": {"value": "linear"},
+          "x": {"scale": "x", "field": "year"},
+          "y": {"scale": "y", "field": "wages"},
+          "y2": {"scale": "y", "value": 0}
+        },
+        "update": {
+          "fill": {"value": "orange"}
+        }
+      }
+    },
+    {
+      "type": "line",
+      "from": {"data": "wheat"},
+      "properties": {
+        "enter": {
+          "interpolate": {"value": "linear"},
+          "x": {"scale": "x", "field": "year"},
+          "y": {"scale": "y", "field": "wages"},
+          "stroke": {"value": "red"},
+          "strokeWidth": {"value": 3}
+        }
+      }
+    },
+    {
+      "name" : "blackrect",
+      "type": "rect",
+      "from": {
+        "data": "monarchs2"
+      },
+      "properties": {
+        "enter": {
+          "x": {"scale": "x", "field": "start"},
+          "x2": {"scale": "x", "field": "end"},
+          "y": {"scale": "y", "value": 95},
+          "y2": {"scale": "y", "field": "offset"}
+        },
+        "update": {
+          "fill": {"scale": "c", "field": "commonwealth"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"mark": "blackrect"},
+      "properties": {
+        "enter": {
+          "x": {"field": "x"},
+          "y": {"field": "y2", "offset": 10},
+          "fill": {"value": "black"},
+          "text": {"field": "datum.name"},
+          "font": {"value": "Helvetica Neue"},
+          "fontSize": {"value": 10}
+        }
+      }
+    }
+  ]
+}

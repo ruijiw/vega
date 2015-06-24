@@ -19,7 +19,9 @@ var STATIC_SPECS = [
   "stacked_area",
   "stacked_bar",
   "stocks",
-  "weather"
+  "weather",
+  "wheat_and_wages",
+  "bertin"
 ];
 
 var INTERACTIVE_SPECS = [

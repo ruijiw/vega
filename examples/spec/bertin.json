@@ -1,0 +1,34 @@
+{
+  "width": 700,
+  "height": 200,
+  "padding": {"top": 10, "left": 30, "bottom": 30, "right":30},
+  "data": [
+    {
+      "name": "hotels",
+      "url": "data/hotels.json"
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "range": "width", "zero": false,
+      "domain": [1565, 1825]
+    },
+    {
+      "name": "type",
+      "type": "ordinal",
+      "range": "height",
+      "domain": {"data": "hotels", "field": "type"}
+    },
+    {
+      "name": "c",
+      "type": "ordinal",
+      "range": ["black", "white"],
+      "domain": {}
+    }
+  ],
+  "axes": [
+    {"type": "x", "scale": "x", "ticks": 5},
+    {"type": "y", "scale": "y", "orient":"right", "ticks": 5}
+  ],
