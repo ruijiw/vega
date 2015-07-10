@@ -1,7 +1,9 @@
 var ved = {
   version: 0.1,
   data: undefined,
-  renderType: "canvas"
+  renderType: "canvas",
+  editor: null,
+  schema: null
 };
 
 ved.params = function() {
@@ -20,11 +22,13 @@ ved.select = function() {
 
   if (idx > 0) {
     d3.xhr(uri, function(error, response) {
-      d3.select("#spec").property("value", response.responseText);
+      ved.editor.setValue(response.responseText);
+      ved.editor.gotoLine(0);
       ved.parse();
     });
   } else {
-    d3.select("#spec").property("value", "");
+    ved.editor.setValue("");
+    ved.editor.gotoLine(0);
   }
 };
 
@@ -37,6 +41,18 @@ ved.renderer = function() {
   ved.parse();
 };
 
+ved.validate = function() {
+  var spec;
+  try {
+    spec = JSON.parse(ved.editor.getValue());
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+  var result = tv4.validateMultiple(spec, schema);
+  console.log(JSON.stringify(result, null, 4));
+};
+
 ved.format = function(event) {
   var el = d3.select("#spec"),
       spec = JSON.parse(el.property("value")),
@@ -47,7 +63,7 @@ ved.format = function(event) {
 ved.parse = function() {
   var spec, source;
   try {
-    spec = JSON.parse(d3.select("#spec").property("value"));
+    spec = JSON.parse(ved.editor.getValue());
   } catch (e) {
     console.log(e);
     return;
@@ -68,6 +84,7 @@ ved.parse = function() {
 ved.resize = function(event) {
   var h = window.innerHeight - 30;
   d3.select("#spec").style("height", h+"px");
+  ved.editor.resize();
 };
 
 ved.init = function() {
@@ -106,7 +123,32 @@ ved.init = function() {
     .attr("value", function(d) { return d.toLowerCase(); })
     .text(function(d) { return d; });
 
+  // Code Editor
+  var editor = ved.editor = ace.edit("spec");
+  editor.getSession().setMode("ace/mode/json");
+  editor.getSession().setTabSize(2);
+  editor.getSession().setUseSoftTabs(true);
+  editor.setShowPrintMargin(false);
+  editor.on('focus', function() {
+    editor.setHighlightActiveLine(true);
+    d3.selectAll('.ace_gutter-active-line').style('background', '#DCDCDC');
+    d3.selectAll('.ace-tm .ace_cursor').style('visibility', 'visible');
+  });
+  editor.on('blur', function() {
+    editor.setHighlightActiveLine(false);
+    d3.selectAll('.ace_gutter-active-line').style('background', 'transparent');
+    d3.selectAll('.ace-tm .ace_cursor').style('visibility', 'hidden');
+    editor.clearSelection();
+  });
+  editor.$blockScrolling = Infinity;
+
+  // validator
+  d3.json('../../vega2.schema.json', function(error, data) { 
+    schema = data; 
+  });
+
   // Initialize application
+  d3.select("#btn_spec_validate").on("click", ved.validate);
   d3.select("#btn_spec_format").on("click", ved.format);
   d3.select("#btn_spec_parse").on("click", ved.parse);
   d3.select(window).on("resize", ved.resize);

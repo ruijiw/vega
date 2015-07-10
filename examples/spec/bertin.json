@@ -1,20 +1,20 @@
 {
-  "width": 700,
-  "height": 200,
-  "padding": {"top": 10, "left": 30, "bottom": 30, "right":30},
+  "width": 480,
+  "height": 550,
+  "padding": {"top": 30, "left": 30, "bottom": 30, "right":300},
   "data": [
     {
       "name": "hotels",
       "url": "data/hotels.json"
-    }
+    },
+    {  
+      "name": "years",
+      "values": [
+        {"year": 0}, {"year": 1}
+      ]
+    }    
   ],
   "scales": [
-    {
-      "name": "x",
-      "type": "linear",
-      "range": "width", "zero": false,
-      "domain": [1565, 1825]
-    },
     {
       "name": "type",
       "type": "ordinal",
@@ -22,13 +22,94 @@
       "domain": {"data": "hotels", "field": "type"}
     },
     {
-      "name": "c",
+      "name": "year",
       "type": "ordinal",
-      "range": ["black", "white"],
-      "domain": {}
+      "range": "width",
+      "domain": {"data": "years", "field": "year"}
     }
   ],
   "axes": [
-    {"type": "x", "scale": "x", "ticks": 5},
-    {"type": "y", "scale": "y", "orient":"right", "ticks": 5}
+    {"type": "y", "scale": "type", "orient":"right"}
   ],
+  "marks": [
+    {
+      "type": "group",
+      "from": { 
+        "data": "years",
+        "transform": [{"type":"facet", "groupby": ["year"]}]
+      },
+      "properties": {
+        "enter": {
+          "x": {"scale": "year", "field": "key"},
+          "width": {"scale": "year", "band": true, "offset": 2}
+        }
+      },
+      "scales": [
+        {
+          "name": "month",
+          "type": "ordinal",
+          "range": "width",
+          "domain": {"data": "hotels", "field": "month"}
+        }
+      ],
+      "axes": [
+        {"type": "x", "scale": "month", "orient":"top"}
+      ],
+      "marks": [
+        {
+          "type": "group",
+          "from": {
+            "data": "hotels",
+            "transform": [
+              {
+                "type":"facet", 
+                "groupby": ["type"],
+                "summarize": [{"name": "count", "ops": ["mean"]}]
+              },
+              {
+                "type": "formula", 
+                "field": "color", 
+                "expr": "datum.count > datum.mean_count"
+              }
+            ]
+          },
+          "properties": {
+            "enter": {
+              "y": {"scale": "type", "field": "key"},
+              "height": {"scale": "type", "band": true, "offset": -5}
+            }
+          },
+          "scales": [
+            {
+              "name": "count",
+              "type": "linear",
+              "range": "height",
+              "domain": {"field": "count"}
+            },
+            {
+              "name": "c",
+              "type": "ordinal",
+              "range": ["black", "white"],
+              "domain": {"field" : "color"}
+            }
+          ],
+          "marks": [
+            {
+              "name": "bars",
+              "type": "rect",
+              "properties": {
+                "enter": {
+                  "y": {"scale": "count", "field": "count"},
+                  "y2": {"scale": "count", "value": 0},
+                  "x": {"scale": "month", "field": "month"},
+                  "width": {"scale": "month", "band": true, "offset": -1},
+                  "fill": {"value": "steelblue"}
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
