@@ -51,6 +51,29 @@ ved.validate = function() {
   }
   var result = tv4.validateMultiple(spec, schema);
   console.log(JSON.stringify(result, null, 4));
+  if (result.valid == false) {
+    for (var j = 0; j < result.errors.length; j++) {
+      var errorstr = result.errors[j].dataPath;
+      var errorarr = errorstr.substring(1, errorstr.length).split("/");
+      var table = jsonlint.parse(ved.editor.getValue()).lineIndex;
+      var str = errorarr[0];
+      for (var i = 1; i < errorarr.length; i++) {
+        if (isNaN(errorarr[i])) {
+          str += "." + errorarr[i];
+        } else {
+          str += "[" + errorarr[i] + "]";
+        }
+      }
+      var line = table[str];
+      console.log(line);
+      ved.editor.getSession().setAnnotations([{
+          row: line - 1,
+          column: 0,
+          text: result.errors[j].message,
+          type: "error" // also warning and information
+      }]);
+    }
+  }
 };
 
 ved.format = function(event) {
