@@ -1,20 +1,16 @@
 module.exports = {
-  core: {
-    View: require('./src/core/View')
-  },
-  dataflow: {
-    changeset: require('./src/dataflow/changeset'),
-    Datasource: require('./src/dataflow/Datasource'),
-    Graph: require('./src/dataflow/Graph'),
-    Node: require('./src/dataflow/Node')
-  },
+  version: '__VERSION__',
+  dataflow: require('vega-dataflow'),
   parse: require('./src/parse/'),
   scene: {
+    Bounder: require('./src/scene/Bounder'),
     Builder: require('./src/scene/Builder'),
-    GroupBuilder: require('./src/scene/GroupBuilder')
+    Encoder: require('./src/scene/Encoder'),
+    GroupBuilder: require('./src/scene/GroupBuilder'),
   },
-  transforms: require('./src/transforms/'),
-  config: require('./src/util/config'),
-  util: require('datalib/src/util'),
-  schema: require('./src/util/schema')
+  transforms: require('./src/transforms'),
+  schema: require('./src/core/schema'),
+  config: require('./src/core/config'),
+  util:  require('datalib/src/util'),
+  debug: require('vega-logging').debug
 };

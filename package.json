@@ -1,11 +1,39 @@
 {
   "name": "vega",
   "version": "2.0.0",
+  "description": "The Vega visualization grammar runtime",
+  "keywords": [
+    "vega",
+    "visualization",
+    "interaction",
+    "dataflow",
+    "grammar",
+    "d3"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/vega/vega.git"
+  },
+  "author": {
+    "name": "Arvind Satyanarayan",
+    "url": "http://arvindsatya.com/"
+  },
+  "contributors": [
+    {
+      "name": "Jeffrey Heer",
+      "url": "http://idl.cs.washington.edu/"
+    }
+  ],
+  "license": "BSD-3-Clause",
   "dependencies": {
-    "datalib": "^1.1.x",
-    "d3": "^3.5.5",
+    "d3": "^3.5.x",
     "d3-geo-projection": "^0.2.13",
+    "datalib": "^1.2.x",
     "topojson": "^1.6.18",
+    "vega-dataflow": "vega/vega-dataflow",
+    "vega-expression": "vega/vega-expression",
+    "vega-logging": "vega/vega-logging",
+    "vega-scenegraph": "vega/vega-scenegraph",
     "yargs": "^3.2.1"
   },
   "optionalDependencies": {
@@ -14,10 +42,12 @@
   "devDependencies": {
     "browserify": "^9.0.8",
     "browserify-shim": "^3.8.5",
+    "browserify-versionify": "^1.0.4",
     "chai": "^1.10.0",
     "chai-spies": "^0.6.0",
     "chromedriver": "^2.14.1",
     "coveralls": "^2.11.2",
+    "del": "^1.2.0",
     "event-stream": "^3.3.1",
     "exorcist": "^0.4.0",
     "gulp": "^3.8.11",
@@ -26,8 +56,6 @@
     "gulp-spawn-mocha": "^2.0.1",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.4",
-    "heap": "^0.2.6",
-    "is-my-json-valid": "^2.12.0",
     "jsdom": "^3.1.2",
     "jstransform": "^11.0.1",
     "mocha": "^2.1.0",
@@ -35,6 +63,7 @@
     "selenium-server-standalone-jar": "^2.45.0",
     "summary": "^0.3.2",
     "through": "^2.3.7",
+    "tv4": "^1.1.12",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
     "vinyl-transform": "^1.0.0",
@@ -57,7 +86,8 @@
   },
   "browserify": {
     "transform": [
-      "browserify-shim"
+      "browserify-shim",
+      "browserify-versionify"
     ]
   },
   "browserify-shim": {

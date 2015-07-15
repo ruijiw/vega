@@ -1,17 +1,24 @@
 var util = require('datalib/src/util'),
-    Node = require('../dataflow/Node'),
+    Item = require('vega-scenegraph/src/util/Item'),
+    Tuple = require('vega-dataflow/src/Tuple'),
+    ChangeSet = require('vega-dataflow/src/ChangeSet'),
+    Node = require('vega-dataflow/src/Node'), // jshint ignore:line
+    Deps = require('vega-dataflow/src/Dependencies'),
+    Sentinel = require('vega-dataflow/src/Sentinel'),
+    log = require('vega-logging'),
     Encoder  = require('./Encoder'),
     Bounder  = require('./Bounder'),
-    Item  = require('./Item'),
-    parseData = require('../parse/data'),
-    tuple = require('../dataflow/tuple'),
-    changeset = require('../dataflow/changeset'),
-    log = require('../util/log'),
-    C = require('../util/constants');
+    parseData = require('../parse/data');
 
 function Builder() {    
   return arguments.length ? this.init.apply(this, arguments) : this;
 }
+
+var Status = Builder.STATUS = {
+  ENTER: "enter",
+  UPDATE: "update",
+  EXIT: "exit"
+};
 
 var proto = (Builder.prototype = new Node());
 
@@ -30,40 +37,42 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
 
   mark.def = def;
   mark.marktype = def.type;
-  mark.interactive = !(def.interactive === false);
+  mark.interactive = (def.interactive !== false);
   mark.items = [];
+  if (util.isValid(def.name)) mark.name = def.name;
 
   this._parent = parent;
   this._parent_id = parent_id;
 
-  if(def.from && (def.from.mark || def.from.transform || def.from.modify)) {
+  if (def.from && (def.from.mark || def.from.transform || def.from.modify)) {
     inlineDs.call(this);
   }
 
   // Non-group mark builders are super nodes. Encoder and Bounder remain 
   // separate operators but are embedded and called by Builder.evaluate.
-  this._isSuper = (this._def.type !== C.GROUP); 
+  this._isSuper = (this._def.type !== "group"); 
   this._encoder = new Encoder(this._graph, this._mark);
   this._bounder = new Bounder(this._graph, this._mark);
+  this._output  = null; // Output changeset for reactive geom as Bounder reflows
 
-  if(this._ds) { this._encoder.dependency(C.DATA, this._from); }
+  if (this._ds) { this._encoder.dependency(Deps.DATA, this._from); }
 
   // Since Builders are super nodes, copy over encoder dependencies
   // (bounder has no registered dependencies).
-  this.dependency(C.DATA, this._encoder.dependency(C.DATA));
-  this.dependency(C.SCALES, this._encoder.dependency(C.SCALES));
-  this.dependency(C.SIGNALS, this._encoder.dependency(C.SIGNALS));
+  this.dependency(Deps.DATA, this._encoder.dependency(Deps.DATA));
+  this.dependency(Deps.SCALES, this._encoder.dependency(Deps.SCALES));
+  this.dependency(Deps.SIGNALS, this._encoder.dependency(Deps.SIGNALS));
 
   return this;
 };
 
 proto.revises = function(p) {
-  if(!arguments.length) return this._revises;
+  if (!arguments.length) return this._revises;
 
   // If we've not needed prev in the past, but a new inline ds needs it now
   // ensure existing items have prev set.
-  if(!this._revises && p) {
-    this._items.forEach(function(d) { if(d._prev === undefined) d._prev = C.SENTINEL; });
+  if (!this._revises && p) {
+    this._items.forEach(function(d) { if (d._prev === undefined) d._prev = Sentinel; });
   }
 
   this._revises = this._revises || p;
@@ -75,9 +84,9 @@ proto.revises = function(p) {
 function inlineDs() {
   var from = this._def.from,
       geom = from.mark,
-      src, name, spec, sibling, output;
+      src, name, spec, sibling, output, input;
 
-  if(geom) {
+  if (geom) {
     name = ["vg", this._parent_id, geom].join("_");
     spec = {
       name: name,
@@ -97,26 +106,35 @@ function inlineDs() {
 
   this._from = name;
   this._ds = parseData.datasource(this._graph, spec);
-  var revises = this._ds.revises();
+  var revises = this._ds.revises(), node;
 
-  if(geom) {
+  if (geom) {
     sibling = this.sibling(geom).revises(revises);
-    if(sibling._isSuper) sibling.addListener(this._ds.listener());
-    else sibling._bounder.addListener(this._ds.listener());
+
+    // Bounder reflows, so we need an intermediary node to propagate
+    // the output constructed by the Builder.
+    node = new Node(this._graph).addListener(this._ds.listener());
+    node.evaluate = function(input) { return sibling._output; };
+
+    if (sibling._isSuper) {
+      sibling.addListener(node);
+    } else {
+      sibling._bounder.addListener(node);
+    }
   } else {
     // At this point, we have a new datasource but it is empty as
     // the propagation cycle has already crossed the datasources. 
     // So, we repulse just this datasource. This should be safe
     // as the ds isn't connected to the scenegraph yet.
     
-    var output = this._ds.source().revises(revises).last();
-        input  = changeset.create(output);
+    output = this._ds.source().revises(revises).last();
+    input  = ChangeSet.create(output);
 
     input.add = output.add;
     input.mod = output.mod;
     input.rem = output.rem;
     input.stamp = null;
-    this._graph.propagate(input, this._ds.listener());
+    this._graph.propagate(input, this._ds.listener(), output.stamp);
   }
 }
 
@@ -129,12 +147,12 @@ proto.connect = function() {
 
   this._graph.connect(this.pipeline());
   this._encoder._scales.forEach(function(s) {
-    if(!(s = builder._parent.scale(s))) return;
+    if (!(s = builder._parent.scale(s))) return;
     s.addListener(builder);
   });
 
-  if(this._parent) {
-    if(this._isSuper) this.addListener(this._parent._collector);
+  if (this._parent) {
+    if (this._isSuper) this.addListener(this._parent._collector);
     else this._bounder.addListener(this._parent._collector);
   }
 
@@ -143,12 +161,12 @@ proto.connect = function() {
 
 proto.disconnect = function() {
   var builder = this;
-  if(!this._listeners.length) return this;
+  if (!this._listeners.length) return this;
 
   Node.prototype.disconnect.call(this);
   this._graph.disconnect(this.pipeline());
   this._encoder._scales.forEach(function(s) {
-    if(!(s = builder._parent.scale(s))) return;
+    if (!(s = builder._parent.scale(s))) return;
     s.removeListener(builder);
   });
   return this;
@@ -159,12 +177,12 @@ proto.sibling = function(name) {
 };
 
 proto.evaluate = function(input) {
-  log.debug(input, ["building", this._from, this._def.type]);
+  log.debug(input, ["building", (this._from || this._def.from), this._def.type]);
 
   var output, fullUpdate, fcs, data, name;
 
-  if(this._ds) {
-    output = changeset.create(input);
+  if (this._ds) {
+    output = ChangeSet.create(input);
 
     // We need to determine if any encoder dependencies have been updated.
     // However, the encoder's data source will likely be updated, and shouldn't
@@ -176,103 +194,115 @@ proto.evaluate = function(input) {
 
     // If a scale or signal in the update propset has been updated, 
     // send forward all items for reencoding if we do an early return.
-    if(fullUpdate) output.mod = this._mark.items.slice();
+    if (fullUpdate) output.mod = this._mark.items.slice();
 
     fcs = this._ds.last();
-    if(!fcs) {
-      output.reflow = true
-    } else if(fcs.stamp > this._stamp) {
+    if (!fcs) throw Error('Builder evaluated before backing DataSource');
+    if (fcs.stamp > this._stamp) {
       output = joinDatasource.call(this, fcs, this._ds.values(), fullUpdate);
     }
   } else {
-    fullUpdate = this._encoder.reevaluate(input);
-    data = util.isFunction(this._def.from) ? this._def.from() : [C.SENTINEL];
-    output = joinValues.call(this, input, data, fullUpdate);
+    data = util.isFunction(this._def.from) ? this._def.from() : [Sentinel];
+    output = joinValues.call(this, input, data);
   }
 
-  output = this._graph.evaluate(output, this._encoder);
-  return this._isSuper ? this._graph.evaluate(output, this._bounder) : output;
+  // Stash output before Bounder for downstream reactive geometry.
+  this._output = output = this._graph.evaluate(output, this._encoder);
+
+  // Supernodes calculate bounds too, but only on items marked dirty.
+  if (this._isSuper) {
+    output.mod = output.mod.filter(function(x) { return x._dirty; });
+    output = this._graph.evaluate(output, this._bounder);
+  }
+
+  return output;
 };
 
 function newItem() {
   var prev = this._revises ? null : undefined,
-      item = tuple.ingest(new Item(this._mark), prev);
+      item = Tuple.ingest(new Item(this._mark), prev);
 
   // For the root node's item
-  if(this._def.width)  tuple.set(item, "width",  this._def.width);
-  if(this._def.height) tuple.set(item, "height", this._def.height);
+  if (this._def.width)  Tuple.set(item, "width",  this._def.width);
+  if (this._def.height) Tuple.set(item, "height", this._def.height);
   return item;
-};
+}
 
 function join(data, keyf, next, output, prev, mod) {
   var i, key, len, item, datum, enter;
 
-  for(i=0, len=data.length; i<len; ++i) {
+  for (i=0, len=data.length; i<len; ++i) {
     datum = data[i];
     item  = keyf ? this._map[key = keyf(datum)] : prev[i];
     enter = item ? false : (item = newItem.call(this), true);
-    item.status = enter ? C.ENTER : C.UPDATE;
+    item.status = enter ? Status.ENTER : Status.UPDATE;
     item.datum = datum;
-    tuple.set(item, "key", key);
+    Tuple.set(item, "key", key);
     this._map[key] = item;
     next.push(item);
-    if(enter) output.add.push(item);
-    else if(!mod || (mod && mod[datum._id])) output.mod.push(item);
+    if (enter) {
+      output.add.push(item);
+    } else if (!mod || (mod && mod[datum._id])) {
+      output.mod.push(item);
+    }
   }
 }
 
 function joinDatasource(input, data, fullUpdate) {
-  var output = changeset.create(input),
+  var output = ChangeSet.create(input),
       keyf = keyFunction(this._def.key || "_id"),
-      add = input.add, 
-      mod = input.mod, 
+      mod = input.mod,
       rem = input.rem,
       next = [],
-      i, key, len, item, datum, enter;
+      i, key, len, item;
 
   // Build rems first, and put them at the head of the next items
   // Then build the rest of the data values (which won't contain rem).
   // This will preserve the sort order without needing anything extra.
 
-  for(i=0, len=rem.length; i<len; ++i) {
+  for (i=0, len=rem.length; i<len; ++i) {
     item = this._map[key = keyf(rem[i])];
-    item.status = C.EXIT;
+    item.status = Status.EXIT;
+    item._dirty = true;
+    input.dirty.push(item);
     next.push(item);
     output.rem.push(item);
     this._map[key] = null;
   }
 
-  join.call(this, data, keyf, next, output, null, tuple.idMap(fullUpdate ? data : mod));
+  join.call(this, data, keyf, next, output, null, Tuple.idMap(fullUpdate ? data : mod));
 
   return (this._mark.items = next, output);
 }
 
-function joinValues(input, data, fullUpdate) {
-  var output = changeset.create(input),
+function joinValues(input, data) {
+  var output = ChangeSet.create(input),
       keyf = keyFunction(this._def.key),
       prev = this._mark.items || [],
       next = [],
-      i, key, len, item, datum, enter;
+      i, len, item;
 
   for (i=0, len=prev.length; i<len; ++i) {
     item = prev[i];
-    item.status = C.EXIT;
+    item.status = Status.EXIT;
     if (keyf) this._map[item.key] = item;
   }
-  
-  join.call(this, data, keyf, next, output, prev, fullUpdate ? tuple.idMap(data) : null);
+
+  join.call(this, data, keyf, next, output, prev, Tuple.idMap(data));
 
   for (i=0, len=prev.length; i<len; ++i) {
     item = prev[i];
-    if (item.status === C.EXIT) {
-      tuple.set(item, "key", keyf ? item.key : this._items.length);
+    if (item.status === Status.EXIT) {
+      Tuple.set(item, "key", keyf ? item.key : this._items.length);
+      item._dirty = true;
+      input.dirty.push(item);
       next.splice(0, 0, item);  // Keep item around for "exit" transition.
       output.rem.push(item);
     }
   }
-  
+
   return (this._mark.items = next, output);
-};
+}
 
 function keyFunction(key) {
   if (key == null) return null;
@@ -283,7 +313,7 @@ function keyFunction(key) {
       s += String(f[i](d));
     }
     return s;
-  }
-};
+  };
+}
 
 module.exports = Builder;

@@ -1,4 +1,4 @@
-var config = require('../../src/util/config'),
+var config = require('../../src/core/config'),
   jsdom = require('jsdom'),
   d3 = require('d3'),
   fs = require('fs'),
@@ -21,9 +21,11 @@ describe('SVG', function() {
 
     // validation xpaths for rendered SVG DOM; a single match will be expected
     var validation = {
-      "barley": "//svg:g[@class='type-symbol']/svg:path[120]",
-      "area": "//svg:g[@class='type-area']/svg:path",
-      "bar": "//svg:g[@class='type-rect']/svg:rect[20]",
+      "barley": "//svg:g[@class='mark-symbol']/svg:path[120]",
+      "area": "//svg:g[@class='mark-area']/svg:path",
+      "bar": "//svg:g[@class='mark-rect']/svg:rect[20]",
+
+      "heatmap": "skip" // Stress JSDOM out
     };
 
     files.forEach(function(file, idx) {
@@ -60,13 +62,18 @@ describe('SVG', function() {
           done();
         } else {
           jsdom.env("<html><body></body></html>", function(err, window) {
+            global.window = window;
+            global.document = window.document;
+            
             var body = d3.select(window.document).select('body').node();
             var view = viewFactory({ renderer: "svg", el: body }).update();
             var svg  = d3.select(body).select('div.vega').node().innerHTML
               .replace(/ href=/g, " xlink:href=")   // ns hack
               .replace("<svg", "<svg "+config.svgNamespace);
-
             validate(svg, name+".dom", validation);
+
+            delete global.window;
+            delete global.document;
             done();
           });
         }

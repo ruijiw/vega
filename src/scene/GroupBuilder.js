@@ -1,12 +1,12 @@
 var util = require('datalib/src/util'),
-    Node = require('../dataflow/Node'),
-    Collector = require('../dataflow/Collector'),
+    Node = require('vega-dataflow/src/Node'), // jshint ignore:line
+    Collector = require('vega-dataflow/src/Collector'),
+    Deps = require('vega-dataflow/src/Dependencies'),
+    log = require('vega-logging'),
     Builder = require('./Builder'),
     Scale = require('./Scale'),
     parseAxes = require('../parse/axes'),
-    parseLegends = require('../parse/legends'),
-    log = require('../util/log'),
-    C = require('../util/constants');
+    parseLegends = require('../parse/legends');
 
 function GroupBuilder() {
   this._children = {};
@@ -18,9 +18,16 @@ function GroupBuilder() {
   return arguments.length ? this.init.apply(this, arguments) : this;
 }
 
+var Types = GroupBuilder.TYPES = {
+  GROUP:  "group",
+  MARK:   "mark",
+  AXIS:   "axis",
+  LEGEND: "legend"
+};
+
 var proto = (GroupBuilder.prototype = new Builder());
 
-proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
+proto.init = function(graph, def) {
   var builder = this, name;
 
   this._scaler = new Node(graph);
@@ -42,7 +49,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
     return (acc[x.size || x.shape || x.fill || x.stroke], acc);
   }, scales);
 
-  this._recursor.dependency(C.SCALES, util.keys(scales));
+  this._recursor.dependency(Deps.SCALES, util.keys(scales));
 
   // We only need a collector for up-propagation of bounds calculation,
   // so only GroupBuilders, and not regular Builders, have collectors.
@@ -51,7 +58,7 @@ proto.init = function(graph, def, mark, parent, parent_id, inheritFrom) {
   return Builder.prototype.init.apply(this, arguments);
 };
 
-proto.evaluate = function(input) {
+proto.evaluate = function() {
   var output = Builder.prototype.evaluate.apply(this, arguments),
       builder = this;
 
@@ -69,7 +76,7 @@ proto.disconnect = function() {
     builder._children[group_id].forEach(function(c) {
       builder._recursor.removeListener(c.builder);
       c.builder.disconnect();
-    })
+    });
   });
 
   builder._children = {};
@@ -81,9 +88,9 @@ proto.child = function(name, group_id) {
       i = 0, len = children.length,
       child;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     child = children[i];
-    if(child.type == C.MARK && child.builder._def.name == name) break;
+    if (child.type == Types.MARK && child.builder._def.name == name) break;
   }
 
   return child.builder;
@@ -94,13 +101,13 @@ function recurse(input) {
       hasMarks = util.array(this._def.marks).length > 0,
       hasAxes = util.array(this._def.axes).length > 0,
       hasLegends = util.array(this._def.legends).length > 0,
-      i, len, group, pipeline, def, inline = false;
+      i, j, c, len, group, pipeline, def, inline = false;
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     group = input.add[i];
-    if(hasMarks) buildMarks.call(this, input, group);
-    if(hasAxes)  buildAxes.call(this, input, group);
-    if(hasLegends) buildLegends.call(this, input, group);
+    if (hasMarks) buildMarks.call(this, input, group);
+    if (hasAxes)  buildAxes.call(this, input, group);
+    if (hasLegends) buildLegends.call(this, input, group);
   }
 
   // Wire up new children builders in reverse to minimize graph rewrites.
@@ -115,68 +122,73 @@ function recurse(input) {
       // This new child needs to be built during this propagation cycle.
       // We could add its builder as a listener off the _recursor node, 
       // but try to inline it if we can to minimize graph dispatches.
-      inline = (def.type !== C.GROUP);
+      inline = (def.type !== Types.GROUP);
       inline = inline && (this._graph.data(c.from) !== undefined); 
-      inline = inline && (pipeline[pipeline.length-1].listeners().length == 1); // Reactive geom
+      inline = inline && (pipeline[pipeline.length-1].listeners().length === 1); // Reactive geom source
+      inline = inline && (def.from && !def.from.mark); // Reactive geom target
       c.inline = inline;
 
-      if(inline) c.builder.evaluate(input);
+      if (inline) this._graph.evaluate(input, c.builder);
       else this._recursor.addListener(c.builder);
     }
   }
 
-  for(i=0, len=input.mod.length; i<len; ++i) {
-    group = input.mod[i];
-    // Remove temporary connection for marks that draw from a source
-    if(hasMarks) {
-      builder._children[group._id].forEach(function(c) {
-        if(c.type == C.MARK && !c.inline && builder._graph.data(c.from) !== undefined ) {
-          builder._recursor.removeListener(c.builder);
-        }
-      });
+  function removeTemp(c) {
+    if (c.type == Types.MARK && !c.inline &&
+        builder._graph.data(c.from) !== undefined) {
+      builder._recursor.removeListener(c.builder);
     }
-
-    // Update axes data defs
-    if(hasAxes) {
-      group.axes.forEach(function(a, i) { 
-        var scale = a.scale();
-        if(!input.scales[scale.scaleName]) return;
-        a.reset().def();
-      });
-    }
-
-    // Update legend data defs
-    if(hasLegends) {
-      group.legends.forEach(function(l, i) { 
-        var scale = l.size() || l.shape() || l.fill() || l.stroke();
-        if(!input.scales[scale.scaleName]) return;
-        l.reset().def();
-      });
-    }   
   }
 
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  function updateAxis(a) { 
+    var scale = a.scale();
+    if (!input.scales[scale.scaleName]) return;
+    a.reset().def();
+  }
+  
+  function updateLegend(l) { 
+    var scale = l.size() || l.shape() || l.fill() || l.stroke();
+    if (!input.scales[scale.scaleName]) return;
+    l.reset().def();
+  }
+
+  for (i=0, len=input.mod.length; i<len; ++i) {
+    group = input.mod[i];
+
+    // Remove temporary connection for marks that draw from a source
+    if (hasMarks) builder._children[group._id].forEach(removeTemp);
+
+    // Update axis data defs
+    if (hasAxes) group.axes.forEach(updateAxis);
+
+    // Update legend data defs
+    if (hasLegends) group.legends.forEach(updateLegend);
+  }
+
+  function disconnectChildren(c) { 
+    builder._recursor.removeListener(c.builder);
+    c.builder.disconnect(); 
+  }
+
+  for (i=0, len=input.rem.length; i<len; ++i) {
     group = input.rem[i];
     // For deleted groups, disconnect their children
-    builder._children[group._id].forEach(function(c) { 
-      builder._recursor.removeListener(c.builder);
-      c.builder.disconnect(); 
-    });
+    builder._children[group._id].forEach(disconnectChildren);
     delete builder._children[group._id];
   }
 
   return input;
-};
+}
 
-function scale(name, scale) {
+function scale(name, s) {
   var group = this;
-  if(arguments.length === 2) return (group._scales[name] = scale, scale);
-  while(scale == null) {
-    scale = group._scales[name];
+  if (arguments.length === 2) return (group._scales[name] = s, s);
+  while (s == null) {
+    s = group._scales[name];
     group = group.mark ? group.mark.group : group._parent;
-    if(!group) break;
+    if (!group) break;
   }
-  return scale;
+  return s;
 }
 
 function buildGroup(input, group) {
@@ -198,20 +210,19 @@ function buildGroup(input, group) {
 function buildMarks(input, group) {
   log.debug(input, ["building children marks #"+group._id]);
   var marks = this._def.marks,
-      listeners = [],
-      mark, from, inherit, i, len, m, b;
+      mark, from, inherit, i, len, b;
 
-  for(i=0, len=marks.length; i<len; ++i) {
+  for (i=0, len=marks.length; i<len; ++i) {
     mark = marks[i];
     from = mark.from || {};
     inherit = group.datum._facetID;
     group.items[i] = {group: group};
-    b = (mark.type === C.GROUP) ? new GroupBuilder() : new Builder();
+    b = (mark.type === Types.GROUP) ? new GroupBuilder() : new Builder();
     b.init(this._graph, mark, group.items[i], this, group._id, inherit);
     this._children[group._id].push({ 
       builder: b, 
       from: from.data || (from.mark ? ("vg_" + group._id + "_" + from.mark) : inherit), 
-      type: C.MARK 
+      type: Types.MARK 
     });
   }
 }
@@ -227,11 +238,11 @@ function buildAxes(input, group) {
         def = a.def(),
         b = null;
 
-    axisItems[i] = {group: group, axisDef: def};
-    b = (def.type === C.GROUP) ? new GroupBuilder() : new Builder();
+    axisItems[i] = {group: group, axisDef: def, layer: def.layer};
+    b = (def.type === Types.GROUP) ? new GroupBuilder() : new Builder();
     b.init(builder._graph, def, axisItems[i], builder)
-      .dependency(C.SCALES, scale);
-    builder._children[group._id].push({ builder: b, type: C.AXIS, scale: scale });
+      .dependency(Deps.SCALES, scale);
+    builder._children[group._id].push({ builder: b, type: Types.AXIS, scale: scale });
   });
 }
 
@@ -247,10 +258,10 @@ function buildLegends(input, group) {
         b = null;
 
     legendItems[i] = {group: group, legendDef: def};
-    b = (def.type === C.GROUP) ? new GroupBuilder() : new Builder();
+    b = (def.type === Types.GROUP) ? new GroupBuilder() : new Builder();
     b.init(builder._graph, def, legendItems[i], builder)
-      .dependency(C.SCALES, scale);
-    builder._children[group._id].push({ builder: b, type: C.LEGEND, scale: scale });
+      .dependency(Deps.SCALES, scale);
+    builder._children[group._id].push({ builder: b, type: Types.LEGEND, scale: scale });
   });
 }
 

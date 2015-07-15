@@ -1,5 +1,5 @@
 describe('Schema', function() {
-  var schema = require('../src/util/schema')({
+  var schema = require('../src/core/schema')({
     properties: {a: "string", b: "string"}  // Custom properties for linking example
   });
 
@@ -75,7 +75,7 @@ describe('Schema', function() {
   describe('Examples', function() {
     var fs = require('fs'),
         path = require('path'),
-        config = require('../src/util/config'),
+        config = require('../src/core/config'),
         examples = "./examples/spec/",
         validate = validator(schema);
 
@@ -90,8 +90,11 @@ describe('Schema', function() {
       var name = path.basename(file, ".json");
 
       it('should validate the '+ name + ' example', function() {
-        var spec = dl.json(examples + file);
-        expect(validate(spec)).to.be.true;
+        var spec = dl.json(examples + file),
+            v = validate(spec);
+
+        if (!v && tv4.error) console.log(name, tv4.error);
+        expect(v).to.equal(true, tv4.error);
       });
     });
 

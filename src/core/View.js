@@ -1,16 +1,15 @@
 var d3 = require('d3'),
     util = require('datalib/src/util'),
-    Node = require('../dataflow/Node'),
+    canvas = require('vega-scenegraph/src/render/canvas'),
+    svg = require('vega-scenegraph/src/render/svg'),
+    Node = require('vega-dataflow/src/Node'), // jshint ignore:line
+    log = require('vega-logging'),
     parseStreams = require('../parse/streams'),
-    canvas = require('../render/canvas/index'),
-    svg = require('../render/svg/index'),
     Encoder = require('../scene/Encoder'),
     Transition = require('../scene/Transition'),
-    config = require('../util/config'),
-    log = require('../util/log'),
-    changeset = require('../dataflow/changeset');
+    changeset = require('vega-dataflow/src/ChangeSet');
 
-var View = function(el, width, height, model) {
+function View(el, width, height) {
   this._el    = null;
   this._model = null;
   this._width = this.__width = width || 500;
@@ -23,10 +22,11 @@ var View = function(el, width, height, model) {
   this._handler  = null;
   this._streamer = null; // Targeted update for streaming changes
   this._changeset = null;
+  this._repaint = true; // Full re-render on every re-init
   this._renderers = {canvas: canvas, svg: svg};
   this._io  = canvas;
   this._api = {}; // Stash streaming data API sandboxes.
-};
+}
 
 var prototype = View.prototype;
 
@@ -51,13 +51,8 @@ function streaming(src) {
       cs  = this._changeset,
       api = {};
 
-  if(util.keys(cs.signals).length > 0) {
-    throw "New signal values are not reflected in the visualization." +
-      " Please call view.update() before updating data values."
-  }
-
   // If we have it stashed, don't create a new closure. 
-  if(this._api[src]) return this._api[src];
+  if (this._api[src]) return this._api[src];
 
   api.insert = function(vals) {
     ds.insert(util.duplicate(vals));  // Don't pollute the environment
@@ -78,16 +73,16 @@ function streaming(src) {
     return (ds.remove.apply(ds, arguments), api);
   };
 
-  api.values = function() { return ds.values() };    
+  api.values = function() { return ds.values(); };    
 
   return (this._api[src] = api);
-};
+}
 
 prototype.data = function(data) {
   var v = this;
-  if(!arguments.length) return v._model.dataValues();
-  else if(util.isString(data)) return streaming.call(v, data);
-  else if(util.isObject(data)) {
+  if (!arguments.length) return v._model.dataValues();
+  else if (util.isString(data)) return streaming.call(v, data);
+  else if (util.isObject(data)) {
     util.keys(data).forEach(function(k) {
       var api = streaming.call(v, k);
       data[k](api);
@@ -102,15 +97,10 @@ prototype.signal = function(name, value) {
       streamer = this._streamer,
       setter = name; 
 
-  if(!arguments.length) return m.signalValues();
-  else if(arguments.length == 1 && util.isString(name)) return m.signalValues(name);
+  if (!arguments.length) return m.signalValues();
+  else if (arguments.length == 1 && util.isString(name)) return m.signalValues(name);
 
-  if(util.keys(cs.data).length > 0) {
-    throw "New data values are not reflected in the visualization." +
-      " Please call view.update() before updating signal values."
-  }
-
-  if(arguments.length == 2) {
+  if (arguments.length == 2) {
     setter = {};
     setter[name] = value;
   }
@@ -128,6 +118,7 @@ prototype.width = function(width) {
   if (!arguments.length) return this.__width;
   if (this.__width !== width) {
     this._width = this.__width = width;
+    this.model().width(width);
     this.initialize();
     if (this._strict) this._autopad = 1;
   }
@@ -138,6 +129,7 @@ prototype.height = function(height) {
   if (!arguments.length) return this.__height;
   if (this.__height !== height) {
     this._height = this.__height = height;
+    this.model().height(height);
     this.initialize();
     if (this._strict) this._autopad = 1;
   }
@@ -165,27 +157,24 @@ prototype.padding = function(pad) {
       this._padding = pad;
       this._strict = false;
     }
-    if (this._headless) {
-      this.initialize();
-    } else if(this._el) {
-      this._renderer.resize(this._width, this._height, pad);
-      if(this._handler) this._handler.padding(pad);
-    }
+    if (this._renderer) this._renderer.resize(this._width, this._height, pad);
+    if (this._handler)  this._handler.padding(pad);
   }
-  return this;
+  return (this._repaint = true, this);
 };
 
 prototype.autopad = function(opt) {
   if (this._autopad < 1) return this;
   else this._autopad = 0;
 
-  var pad = this._padding,
-      b = this.model().scene().bounds,
+  var b = this.model().scene().bounds,
+      pad = this._padding,
+      config = this.model().config(),
       inset = config.autopadInset,
       l = b.x1 < 0 ? Math.ceil(-b.x1) + inset : 0,
       t = b.y1 < 0 ? Math.ceil(-b.y1) + inset : 0,
-      r = b.x2 > this._width  ? Math.ceil(+b.x2 - this._width) + inset : 0,
-      b = b.y2 > this._height ? Math.ceil(+b.y2 - this._height) + inset : 0;
+      r = b.x2 > this._width  ? Math.ceil(+b.x2 - this._width) + inset : 0;
+  b = b.y2 > this._height ? Math.ceil(+b.y2 - this._height) + inset : 0;
   pad = {left:l, top:t, right:r, bottom:b};
 
   if (this._strict) {
@@ -231,11 +220,12 @@ prototype.renderer = function(type) {
 
 prototype.initialize = function(el) {
   var v = this, prevHandler,
-      w = v._width, h = v._height, pad = v._padding, bg = v._bgcolor;
+      w = v._width, h = v._height, pad = v._padding, bg = v._bgcolor,
+      config = this.model().config();
 
   if (!arguments.length || el === null) {
     el = this._el ? this._el.parentNode : null;
-    if(!el) return this;  // This View cannot init w/o an
+    if (!el) return this;  // This View cannot init w/o an
   }
 
   // clear pre-existing container
@@ -255,14 +245,14 @@ prototype.initialize = function(el) {
   }
 
   // renderer
-  v._renderer = (v._renderer || new this._io.Renderer())
-    .initialize(el, w, h, pad, bg);
+  v._renderer = (v._renderer || new this._io.Renderer(config.load))
+    .initialize(el, w, h, pad)
+    .background(bg);
   
   // input handler
   prevHandler = v._handler;
   v._handler = new this._io.Handler()
-    .initialize(el, pad, v)
-    .model(v._model);
+    .initialize(el, pad, v);
 
   if (prevHandler) {
     prevHandler.handlers().forEach(function(h) {
@@ -270,10 +260,14 @@ prototype.initialize = function(el) {
     });
   } else {
     // Register event listeners for signal stream definitions.
-    parseStreams(this);
+    v._detach = parseStreams(this);
   }
   
-  return this;
+  return (this._repaint = true, this);
+};
+
+prototype.destroy = function() {
+  if (this._detach) this._detach();
 };
 
 function build() {
@@ -282,23 +276,30 @@ function build() {
     .router(true);
 
   v._renderNode.evaluate = function(input) {
-    log.debug(input, ["rendering"]);
+    log.debug(input, ['rendering']);
 
-    var s = v._model.scene();
-    if(input.trans) {
+    var s = v._model.scene(),
+        h = v._handler,
+        d;
+
+    if (h && h.scene) h.scene(s);
+
+    if (input.trans) {
       input.trans.start(function(items) { v._renderer.render(s, items); });
-    } else {
+    } else if (v._repaint) {
       v._renderer.render(s);
+      v._repaint = false;
+    } else if (input.dirty.length) {
+      v._renderer.render(s, input.dirty);
     }
 
-    // For all updated datasources, finalize their changesets.
-    var d, ds;
-    for(d in input.data) {
-      ds = v._model.data(d);
-      if(!ds.revises()) continue;
-      changeset.finalize(ds.last());
+    if (input.dirty.length) {
+      input.dirty.forEach(function(i) { i._dirty = false; });
+      s.items[0]._dirty = false;
     }
 
+    // For all updated datasources, clear their previous values.
+    for (d in input.data) v._model.data(d).finalize();
     return input;
   };
 
@@ -308,31 +309,32 @@ function build() {
 prototype.update = function(opt) {    
   opt = opt || {};
   var v = this,
-      trans = opt.duration
-        ? new Transition(opt.duration, opt.ease)
-        : null;
+      trans = opt.duration ? new Transition(opt.duration, opt.ease) : null;
 
   var cs = v._changeset;
-  if(trans) cs.trans = trans;
-  if(opt.props !== undefined) {
-    if(util.keys(cs.data).length > 0) {
-      throw "New data values are not reflected in the visualization." +
+  if (trans) cs.trans = trans;
+  if (opt.props !== undefined) {
+    if (util.keys(cs.data).length > 0) {
+      throw Error(
+        "New data values are not reflected in the visualization." +
         " Please call view.update() before updating a specified property set."
+      );
     }
 
     cs.reflow  = true;
     cs.request = opt.props;
   }
 
+  var built = v._build;
   v._build = v._build || build.call(this);
 
   // If specific items are specified, short-circuit dataflow graph.
   // Else-If there are streaming updates, perform a targeted propagation.
   // Otherwise, reevaluate the entire model (datasources + scene).
-  if(opt.items) { 
-    Encoder.update(this._model, opt.trans, opt.props, opt.items);
+  if (opt.items && built) { 
+    Encoder.update(this._model, opt.trans, opt.props, opt.items, cs.dirty);
     v._renderNode.evaluate(cs);
-  } else if(v._streamer.listeners().length) {
+  } else if (v._streamer.listeners().length && built) {
     v._model.propagate(cs, v._streamer);
     v._streamer.disconnect();
   } else {
@@ -380,10 +382,24 @@ View.factory = function(model) {
       .width(defs.width)
       .height(defs.height)
       .background(defs.background)
-      .padding(defs.padding);
+      .padding(defs.padding)
+      .viewport(defs.viewport)
+      .initialize(opt.el);
 
-    if(opt.el || (!opt.el && v instanceof HeadlessView)) v.initialize(opt.el);
-    if(opt.data) v.data(opt.data);
+    if (opt.data) v.data(opt.data);
+
+    if (opt.hover !== false && opt.el) {
+      v.on("mouseover", function(evt, item) {
+        if (item && item.hasPropertySet("hover")) {
+          this.update({props:"hover", items:item});
+        }
+      })
+      .on("mouseout", function(evt, item) {
+        if (item && item.hasPropertySet("hover")) {
+          this.update({props:"update", items:item});
+        }
+      });
+    }
   
     return v;
   };    

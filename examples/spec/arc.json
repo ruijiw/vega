@@ -1,12 +1,11 @@
 {
-  "name": "arc",
   "width": 400,
   "height": 400,
   "data": [
     {
       "name": "table",
       "values": [12, 23, 47, 6, 52, 19],
-      "transform": [{"type": "pie", "value": "data"}]
+      "transform": [{"type": "pie", "field": "data"}]
     }
   ],
   "scales": [

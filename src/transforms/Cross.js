@@ -1,18 +1,17 @@
-var Transform = require('./Transform'),
-    Collector = require('../dataflow/Collector'),
-    log = require('../util/log'),
-    tuple = require('../dataflow/tuple'),
-    changeset = require('../dataflow/changeset');
+var ChangeSet = require('vega-dataflow/src/ChangeSet'),
+    Tuple = require('vega-dataflow/src/Tuple'),
+    log = require('vega-logging'),
+    Transform = require('./Transform'),
+    BatchTransform = require('./BatchTransform');
 
 function Cross(graph) {
-  Transform.prototype.init.call(this, graph);
+  BatchTransform.prototype.init.call(this, graph);
   Transform.addParameters(this, {
-    with: {type: "data"},
-    diagonal: {type: "value", default: "true"}
+    with: {type: 'data'},
+    diagonal: {type: 'value', default: 'true'}
   });
 
-  this._output = {"left": "a", "right": "b"};
-  this._collector = new Collector(graph);
+  this._output = {'left': 'a', 'right': 'b'};
   this._lastRem  = null; // Most recent stamp that rem occured. 
   this._lastWith = null; // Last time we crossed w/withds.
   this._ids   = {};
@@ -21,7 +20,8 @@ function Cross(graph) {
   return this.router(true);
 }
 
-var proto = (Cross.prototype = new Transform());
+var prototype = (Cross.prototype = Object.create(BatchTransform.prototype));
+prototype.constructor = Cross;
 
 // Each cached incoming tuple also has a stamp to track if we need to do
 // lazy filtering of removed tuples.
@@ -30,19 +30,18 @@ function cache(x, t) {
   c.c.push(t);
 }
 
-function add(output, left, wdata, diag, x) {
-  var data = left ? wdata : this._collector.data(), // Left tuples cross w/right.
-      i = 0, len = data.length,
-      prev  = x._prev !== undefined ? null : undefined, 
+function add(output, left, data, diag, x) {
+  var i = 0, len = data.length,
+      prev = x._prev !== undefined ? null : undefined, 
       t, y, id;
 
-  for(; i<len; ++i) {
+  for (; i<len; ++i) {
     y = data[i];
-    id = left ? x._id+"_"+y._id : y._id+"_"+x._id;
-    if(this._ids[id]) continue;
-    if(x._id == y._id && !diag) continue;
+    id = left ? x._id+'_'+y._id : y._id+'_'+x._id;
+    if (this._ids[id]) continue;
+    if (x._id == y._id && !diag) continue;
 
-    t = tuple.ingest({}, prev);
+    t = Tuple.ingest({}, prev);
     t[this._output.left]  = left ? x : y;
     t[this._output.right] = left ? y : x;
     output.add.push(t);
@@ -56,9 +55,9 @@ function mod(output, left, x) {
   var cross = this,
       c = this._cache[x._id];
 
-  if(this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
+  if (this._lastRem > c.s) {  // Removed tuples haven't been filtered yet
     c.c = c.c.filter(function(y) {
-      var t = y[cross._output[left ? "right" : "left"]];
+      var t = y[cross._output[left ? 'right' : 'left']];
       return cross._cache[t._id] !== null;
     });
     c.s = this._lastRem;
@@ -74,31 +73,27 @@ function rem(output, x) {
 }
 
 function upFields(input, output) {
-  if(input.add.length || input.rem.length) {
+  if (input.add.length || input.rem.length) {
     output.fields[this._output.left]  = 1; 
     output.fields[this._output.right] = 1;
   }
 }
 
-proto.transform = function(input) {
-  log.debug(input, ["crossing"]);
+prototype.batchTransform = function(input, data) {
+  log.debug(input, ['crossing']);
 
-  // Materialize the current datasource. TODO: share collectors
-  this._collector.evaluate(input);
-
-  var w = this.param("with"),
-      diag = this.param("diagonal"),
+  var w = this.param('with'),
+      diag = this.param('diagonal'),
       selfCross = (!w.name),
-      data = this._collector.data(),
       woutput = selfCross ? input : w.source.last(),
       wdata   = selfCross ? data : w.source.values(),
-      output  = changeset.create(input),
+      output  = ChangeSet.create(input),
       r = rem.bind(this, output); 
 
   input.rem.forEach(r);
   input.add.forEach(add.bind(this, output, true, wdata, diag));
 
-  if(!selfCross && woutput.stamp > this._lastWith) {
+  if (!selfCross && woutput.stamp > this._lastWith) {
     woutput.rem.forEach(r);
     woutput.add.forEach(add.bind(this, output, false, data, diag));
     woutput.mod.forEach(mod.bind(this, output, false));
@@ -114,6 +109,7 @@ proto.transform = function(input) {
 };
 
 module.exports = Cross;
+
 Cross.schema = {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Cross transform",

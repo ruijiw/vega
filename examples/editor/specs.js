@@ -10,9 +10,11 @@ var STATIC_SPECS = [
   "grouped_bar",
   "heatmap",
   "image",
+  "jobs",
   "lifelines",
   "map",
   "parallel_coords",
+  "playfair",
   "population",
   "treemap",
   "scatter_matrix",
@@ -25,13 +27,14 @@ var STATIC_SPECS = [
 ];
 
 var INTERACTIVE_SPECS = [
-  "shiftclick_select",
   "brush",
-  "brush_interactor",
+  "budget_forecasts",
+  "crossfilter",
+  "dimpvis",
   "index_chart",
   "linking",
-  "panzoom_points",
-  "panzoom_touch",
   "overview+detail",
-  "dimpvis"
+  "panzoom_points",
+  "shiftclick_select",
+  "tooltip"
 ];

@@ -2,8 +2,12 @@ var ved = {
   version: 0.1,
   data: undefined,
   renderType: "canvas",
+<<<<<<< HEAD
   editor: null,
   schema: null
+=======
+  editor: null
+>>>>>>> upstream/v2
 };
 
 ved.params = function() {
@@ -93,6 +97,7 @@ ved.parse = function() {
   }
 
   ved.spec = spec;
+  if (ved.view) ved.view.destroy();
   vg.parse.spec(spec, function(chart) {
     d3.select("#vis").selectAll("*").remove();
     var view = chart({
@@ -165,11 +170,14 @@ ved.init = function() {
   });
   editor.$blockScrolling = Infinity;
 
+<<<<<<< HEAD
   // validator
   d3.json('../../vega2.schema.json', function(error, data) { 
     schema = data; 
   });
 
+=======
+>>>>>>> upstream/v2
   // Initialize application
   d3.select("#btn_spec_validate").on("click", ved.validate);
   d3.select("#btn_spec_format").on("click", ved.format);

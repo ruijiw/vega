@@ -1,13 +1,13 @@
 var load = require('datalib/src/import/load'),
     read = require('datalib/src/import/read'),
     util = require('datalib/src/util'),
-    config = require('../util/config'),
-    log = require('../util/log'),
+    log = require('vega-logging'),
     parseTransforms = require('./transforms'),
     parseModify = require('./modify');
 
 function parseData(model, spec, callback) {
-  var count = 0;
+  var config = model.config(),
+      count = 0;
 
   function loaded(d) {
     return function(error, data) {
@@ -17,7 +17,7 @@ function parseData(model, spec, callback) {
         model.data(d.name).values(read(data, d.format));
       }
       if (--count === 0) callback();
-    }
+    };
   }
 
   // process each data set definition
@@ -31,11 +31,15 @@ function parseData(model, spec, callback) {
 
   if (count === 0) setTimeout(callback, 1);
   return spec;
-};
+}
 
 parseData.datasource = function(model, d) {
-  var transform = (d.transform||[]).map(function(t) { return parseTransforms(model, t) }),
-      mod = (d.modify||[]).map(function(m) { return parseModify(model, m, d) }),
+  var transform = (d.transform || []).map(function(t) {
+        return parseTransforms(model, t); 
+      }),
+      mod = (d.modify || []).map(function(m) {
+        return parseModify(model, m, d);
+      }),
       ds = model.data(d.name, mod.concat(transform));
 
   if (d.values) {

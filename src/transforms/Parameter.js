@@ -1,6 +1,6 @@
 var util = require('datalib/src/util'),
-    expr = require('../parse/expr'),
-    C = require('../util/constants');
+    Deps = require('vega-dataflow/src/Dependencies'),
+    expr = require('../parse/expr');
 
 var arrayType = /array/i,
     dataType  = /data/i,
@@ -21,7 +21,7 @@ function Parameter(name, type, transform) {
   this._signals = {};
 }
 
-var proto = Parameter.prototype;
+var prototype = Parameter.prototype;
 
 function get() {
   var isArray = arrayType.test(this._type),
@@ -31,15 +31,15 @@ function get() {
   var val = isArray ? this._value : this._value[0],
       acc = isArray ? this._accessors : this._accessors[0];
 
-  if(!util.isValid(acc) && valType.test(this._type)) {
+  if (!util.isValid(acc) && valType.test(this._type)) {
     return val;
   } else {
     return isData ? { name: val, source: acc } :
     isField ? { field: val, accessor: acc } : val;
   }
-};
+}
 
-proto.get = function() {
+prototype.get = function() {
   var graph = this._transform._graph, 
       isData  = dataType.test(this._type),
       isField = fieldType.test(this._type),
@@ -53,7 +53,7 @@ proto.get = function() {
     return get.call(this); // TODO: support signal as dataTypes
   }
 
-  for(s in this._signals) {
+  for (s in this._signals) {
     idx = this._signals[s];
     val = graph.signalRef(s);
 
@@ -68,7 +68,7 @@ proto.get = function() {
   return get.call(this);
 };
 
-proto.set = function(value) {
+prototype.set = function(value) {
   var p = this,
       isExpr = exprType.test(this._type),
       isData  = dataType.test(this._type),
@@ -78,27 +78,27 @@ proto.set = function(value) {
     if (util.isString(v)) {
       if (isExpr) {
         var e = expr(v);
-        p._transform.dependency(C.FIELDS,  e.fields);
-        p._transform.dependency(C.SIGNALS, e.signals);
+        p._transform.dependency(Deps.FIELDS,  e.fields);
+        p._transform.dependency(Deps.SIGNALS, e.globals);
         return e.fn;
       } else if (isField) {  // Backwards compatibility
         p._accessors[i] = util.accessor(v);
-        p._transform.dependency(C.FIELDS, v);
+        p._transform.dependency(Deps.FIELDS, v);
       } else if (isData) {
         p._resolution = true;
-        p._transform.dependency(C.DATA, v);
+        p._transform.dependency(Deps.DATA, v);
       }
       return v;
     } else if (v.value !== undefined) {
       return v.value;
     } else if (v.field !== undefined) {
       p._accessors[i] = util.accessor(v.field);
-      p._transform.dependency(C.FIELDS, v.field);
+      p._transform.dependency(Deps.FIELDS, v.field);
       return v.field;
     } else if (v.signal !== undefined) {
       p._resolution = true;
       p._signals[v.signal] = i;
-      p._transform.dependency(C.SIGNALS, v.signal);
+      p._transform.dependency(Deps.SIGNALS, v.signal);
       return v.signal;
     }
 

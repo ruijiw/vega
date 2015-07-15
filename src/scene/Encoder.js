@@ -1,9 +1,10 @@
 var util = require('datalib/src/util'),
-    Node = require('../dataflow/Node'),
-    bounds = require('../util/boundscalc'),
-    C = require('../util/constants'),
-    log = require('../util/log'),
-    EMPTY = {};
+    bound = require('vega-scenegraph/src/util/bound'),
+    Node = require('vega-dataflow/src/Node'), // jshint ignore:line
+    Deps = require('vega-dataflow/src/Dependencies'),
+    log = require('vega-logging');
+  
+var EMPTY = {};
 
 function Encoder(graph, mark) {
   var props  = mark.def.properties || {},
@@ -11,7 +12,7 @@ function Encoder(graph, mark) {
       update = props.update,
       exit   = props.exit;
 
-  Node.prototype.init.call(this, graph)
+  Node.prototype.init.call(this, graph);
 
   this._mark = mark;
   var s = this._scales = [];
@@ -20,17 +21,17 @@ function Encoder(graph, mark) {
   // encoder depedencies to have targeted reevaluations. However,
   // we still want scales in "enter" and "exit" to be evaluated
   // before the encoder. 
-  if(enter) s.push.apply(s, enter.scales);
+  if (enter) s.push.apply(s, enter.scales);
 
-  if(update) {
-    this.dependency(C.DATA, update.data);
-    this.dependency(C.SIGNALS, update.signals);
-    this.dependency(C.FIELDS, update.fields);
-    this.dependency(C.SCALES, update.scales);
+  if (update) {
+    this.dependency(Deps.DATA, update.data);
+    this.dependency(Deps.SIGNALS, update.signals);
+    this.dependency(Deps.FIELDS, update.fields);
+    this.dependency(Deps.SCALES, update.scales);
     s.push.apply(s, update.scales);
   }
 
-  if(exit) s.push.apply(s, exit.scales);
+  if (exit) s.push.apply(s, exit.scales);
 
   return this;
 }
@@ -40,22 +41,22 @@ var proto = (Encoder.prototype = new Node());
 proto.evaluate = function(input) {
   log.debug(input, ["encoding", this._mark.def.type]);
   var graph = this._graph,
-      items = this._mark.items,
       props = this._mark.def.properties || {},
       enter  = props.enter,
       update = props.update,
       exit   = props.exit,
+      dirty  = input.dirty,
       preds  = this._graph.predicates(),
       sg = graph.signalValues(),  // For expediency, get all signal values
       db = graph.dataValues(), 
       req = input.request,
       i, len, item, prop;
 
-  if(req) {
-    if(prop = props[req]) {
-      for(i=0, len=input.mod.length; i<len; ++i) {
+  if (req) {
+    if ((prop = props[req])) {
+      for (i=0, len=input.mod.length; i<len; ++i) {
         item = input.mod[i];
-        encode.call(this, prop, item, input.trans, db, sg, preds);
+        encode.call(this, prop, item, input.trans, db, sg, preds, dirty);
       }
     }
 
@@ -63,49 +64,53 @@ proto.evaluate = function(input) {
   }
 
   // Items marked for removal are at the head of items. Process them first.
-  for(i=0, len=input.rem.length; i<len; ++i) {
+  for (i=0, len=input.rem.length; i<len; ++i) {
     item = input.rem[i];
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
-    if(exit)   encode.call(this, exit,   item, input.trans, db, sg, preds); 
-    if(input.trans && !exit) input.trans.interpolate(item, EMPTY);
-    else if(!input.trans) item.remove();
+    if (exit)   encode.call(this, exit,   item, input.trans, db, sg, preds, dirty); 
+    if (input.trans && !exit) input.trans.interpolate(item, EMPTY);
+    else if (!input.trans) item.remove();
   }
 
-  for(i=0, len=input.add.length; i<len; ++i) {
+  for (i=0, len=input.add.length; i<len; ++i) {
     item = input.add[i];
-    if(enter)  encode.call(this, enter,  item, input.trans, db, sg, preds);
-    if(update) encode.call(this, update, item, input.trans, db, sg, preds);
-    item.status = C.UPDATE;
+    if (enter)  encode.call(this, enter,  item, input.trans, db, sg, preds, dirty);
+    if (update) encode.call(this, update, item, input.trans, db, sg, preds, dirty);
+    item.status = require('./Builder').STATUS.UPDATE;
   }
 
-  if(update) {
-    for(i=0, len=input.mod.length; i<len; ++i) {
+  if (update) {
+    for (i=0, len=input.mod.length; i<len; ++i) {
       item = input.mod[i];
-      encode.call(this, update, item, input.trans, db, sg, preds);
+      encode.call(this, update, item, input.trans, db, sg, preds, dirty);
     }
   }
 
   return input;
 };
 
-function encode(prop, item, trans, db, sg, preds) {
-  var enc = prop.encode;
-  enc.call(enc, item, item.mark.group||item, trans, db, sg, preds);
+function encode(prop, item, trans, db, sg, preds, dirty) {
+  var enc = prop.encode,
+      wasDirty = item._dirty,
+      isDirty  = enc.call(enc, item, item.mark.group||item, trans, db, sg, preds);
+
+  item._dirty = isDirty || wasDirty;
+  if (isDirty && !wasDirty) dirty.push(item);
 }
 
 // If a specified property set called, or update property set 
 // uses nested fieldrefs, reevaluate all items.
 proto.reevaluate = function(pulse) {
-  var props = this._mark.def.properties || {},
+  var def = this._mark.def,
+      props = def.properties || {},
       update = props.update;
 
-  return pulse.request || 
+  return util.isFunction(def.from) || def.orient || pulse.request || 
     Node.prototype.reevaluate.call(this, pulse) || 
     (update ? update.reflow : false);
 };
 
 // Short-circuit encoder if user specifies items
-Encoder.update = function(graph, trans, request, items) {
+Encoder.update = function(graph, trans, request, items, dirty) {
   items = util.array(items);
   var preds = graph.predicates(), 
       db = graph.dataValues(),
@@ -117,8 +122,8 @@ Encoder.update = function(graph, trans, request, items) {
     props = item.mark.def.properties;
     prop = props && props[request];
     if (prop) {
-      encode.call(null, prop, item, trans, db, sg, preds);
-      bounds.item(item);
+      encode.call(null, prop, item, trans, db, sg, preds, dirty);
+      bound.item(item);
     }
   }
 

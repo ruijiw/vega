@@ -1,57 +1,74 @@
 var util = require('datalib/src/util'),
-    expr = require('./expr'),
-    functions = require('../expression/functions')(),
-    C = require('../util/constants');
+    functions = require('vega-expression/src/functions')(),
+    Deps = require('vega-dataflow/src/Dependencies'),
+    expr = require('./expr');
+
+var RESERVED = ['datum', 'event', 'signals'].concat(util.keys(functions));
 
 function parseSignals(model, spec) {
   // process each signal definition
   (spec || []).forEach(function(s) {
+    if (RESERVED.indexOf(s.name) !== -1) {
+      throw Error('Signal name "'+s.name+'" is a '+
+        'reserved keyword ('+RESERVED.join(', ')+').');
+    }
+
     var signal = model.signal(s.name, s.init)
       .verbose(s.verbose);
 
-    if(s.init && s.init.expr) {
+    if (s.init && s.init.expr) {
       s.init.expr = expr(s.init.expr);
       signal.value(exprVal(model, s.init));
     }
 
-    if(s.expr) {
+    if (s.expr) {
       s.expr = expr(s.expr);
       signal.evaluate = function(input) {
-        var val = exprVal(model, s, signal.value());
-        if(val !== signal.value() || signal.verbose()) {
+        var val = exprVal(model, s);
+        if (val !== signal.value() || signal.verbose()) {
           signal.value(val);
           input.signals[s.name] = 1;
           return input;
         }
         return model.doNotPropagate;        
       };
-      signal.dependency(C.SIGNALS, s.expr.signals);
-      s.expr.signals.forEach(function(dep) { model.signal(dep).addListener(signal); });
+      signal.dependency(Deps.SIGNALS, s.expr.globals);
+      s.expr.globals.forEach(function(dep) {
+        model.signal(dep).addListener(signal);
+      });
     }
   });
 
   return spec;
-};
+}
 
-function exprVal(model, spec, currentValue) {
+function exprVal(model, spec) {
   var e = spec.expr,
-      val = expr.eval(model, e.fn, {signals: e.signals});
+      val = e.fn(null, null, model.signalValues(e.globals));
   return spec.scale ? parseSignals.scale(model, spec, val) : val;
 }
 
-parseSignals.scale = function scale(model, spec, value) {
+parseSignals.scale = function scale(model, spec, value, datum, evt) {
   var def = spec.scale,
       name  = def.name || def.signal || def,
-      scope = def.scope ? model.signalRef(def.scope.signal) : null;
+      scope = def.scope, e;
 
-  if(!scope || !scope.scale) {
+  if (scope) {
+    if (scope.signal) {
+      scope = model.signalRef(scope.signal);
+    } else if (util.isString(scope)) { // Scope is an expression
+      e = def._expr = (def._expr || expr(scope));
+      scope = e.fn(datum, evt, model.signalValues(e.globals));
+    }
+  }
+
+  if (!scope || !scope.scale) {
     scope = (scope && scope.mark) ? scope.mark.group : model.scene().items[0];
   }
 
-  var scale = scope.scale(name);
-  if(!scale) return value;
-  return def.invert ? scale.invert(value) : scale(value);
-}
+  var s = scope.scale(name);
+  return !s ? value : (def.invert ? s.invert(value) : s(value));
+};
 
 module.exports = parseSignals;
 parseSignals.schema = {
@@ -72,7 +89,12 @@ parseSignals.schema = {
             "name": {
               "oneOf": [{"$ref": "#/refs/signal"}, {"type": "string"}]
             },
-            "scope": {"$ref": "#/refs/signal"},
+            "scope": {
+              "oneOf": [
+                {"$ref": "#/refs/signal"},
+                {"type": "string"}
+              ]
+            },
             "invert": {"type": "boolean", "default": false}
           },
 
@@ -90,7 +112,7 @@ parseSignals.schema = {
       "properties": {
         "name": {
           "type": "string",
-          "not": {"enum": ["datum", "event"].concat(util.keys(functions))}
+          "not": {"enum": RESERVED}
         },
         "init": {},
         "verbose": {"type": "boolean", "default": false},

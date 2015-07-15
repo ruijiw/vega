@@ -1,29 +1,27 @@
-var Transform = require('./Transform'),
-    changeset = require('../dataflow/changeset'), 
-    expr = require('../parse/expr'),
-    log = require('../util/log'),
-    C = require('../util/constants');
+var ChangeSet = require('vega-dataflow/src/ChangeSet'),
+    Deps = require('vega-dataflow/src/Dependencies'),
+    log = require('vega-logging'),
+    Transform = require('./Transform');
 
 function Filter(graph) {
   Transform.prototype.init.call(this, graph);
-  Transform.addParameters(this, {test: {type: "expr"} });
+  Transform.addParameters(this, {test: {type: 'expr'}});
 
   this._skip = {};
   return this.router(true);
 }
 
-var proto = (Filter.prototype = new Transform());
+var prototype = (Filter.prototype = Object.create(Transform.prototype));
+prototype.constructor = Filter;
 
-function test(x) {
-  return expr.eval(this._graph, this.param("test"), 
-    {datum: x, signals: this.dependency(C.SIGNALS)});
-};
+prototype.transform = function(input) {
+  log.debug(input, ['filtering']);
 
-proto.transform = function(input) {
-  log.debug(input, ["filtering"]);
-  var output = changeset.create(input),
+  var output = ChangeSet.create(input),
+      graph = this._graph,
       skip = this._skip,
-      f = this;
+      test = this.param('test'),
+      signals = graph.signalValues(this.dependency(Deps.SIGNALS));
 
   input.rem.forEach(function(x) {
     if (skip[x._id] !== 1) output.rem.push(x);
@@ -31,12 +29,12 @@ proto.transform = function(input) {
   });
 
   input.add.forEach(function(x) {
-    if (test.call(f, x)) output.add.push(x);
+    if (test(x, null, signals)) output.add.push(x);
     else skip[x._id] = 1;
   });
 
   input.mod.forEach(function(x) {
-    var b = test.call(f, x),
+    var b = test(x, null, signals),
         s = (skip[x._id] === 1);
     if (b && s) {
       skip[x._id] = 0;
@@ -55,7 +53,8 @@ proto.transform = function(input) {
 };
 
 module.exports = Filter;
-Filter.schema  = {
+
+Filter.schema = {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Filter transform",
   "description": "Filters elements from a data set to remove unwanted items.",
