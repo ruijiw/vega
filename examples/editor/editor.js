@@ -2,12 +2,8 @@ var ved = {
   version: 0.1,
   data: undefined,
   renderType: "canvas",
-<<<<<<< HEAD
   editor: null,
   schema: null
-=======
-  editor: null
->>>>>>> upstream/v2
 };
 
 ved.params = function() {
@@ -69,7 +65,6 @@ ved.validate = function() {
         }
       }
       var line = table[str];
-      console.log(line);
       ved.editor.getSession().setAnnotations([{
           row: line - 1,
           column: 0,
@@ -170,14 +165,11 @@ ved.init = function() {
   });
   editor.$blockScrolling = Infinity;
 
-<<<<<<< HEAD
   // validator
   d3.json('../../vega2.schema.json', function(error, data) { 
     schema = data; 
   });
 
-=======
->>>>>>> upstream/v2
   // Initialize application
   d3.select("#btn_spec_validate").on("click", ved.validate);
   d3.select("#btn_spec_format").on("click", ved.format);
